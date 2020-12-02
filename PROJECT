@@ -1,0 +1,3 @@
+domain: k8s.marcocameriero.net
+repo: github.com/95ulisse/dns-operator
+version: "2"
