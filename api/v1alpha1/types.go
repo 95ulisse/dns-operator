@@ -22,7 +22,7 @@ type ObjectReference struct {
 
 	// Name of the namespace of the resource being referred.
 	// +optional
-	Namespace string `json:"namespace,omitempty"`
+	Namespace *string `json:"namespace,omitempty"`
 }
 
 // SecretReference is a reference to a specific secret.
@@ -34,5 +34,5 @@ type SecretReference struct {
 	// Some instances of this field may be defaulted, in others it may be
 	// required.
 	// +optional
-	Key string `json:"key,omitempty"`
+	Key *string `json:"key,omitempty"`
 }

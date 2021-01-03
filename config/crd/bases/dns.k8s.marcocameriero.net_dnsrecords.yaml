@@ -45,7 +45,7 @@ spec:
             properties:
               content:
                 description: Content of the DNS record. The meaning of the content
-                  field depends on the type of record. This fiels is required.
+                  field depends on the type of record. This field is required.
                 properties:
                   a:
                     description: A record.

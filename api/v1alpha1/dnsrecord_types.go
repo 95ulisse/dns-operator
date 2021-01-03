@@ -31,7 +31,7 @@ type DNSRecordSpec struct {
 	Name string `json:"name"`
 
 	// Content of the DNS record. The meaning of the content field depends on the type of record.
-	// This fiels is required.
+	// This field is required.
 	Content DNSRecordContent `json:"content"`
 
 	// TTL in seconds of the DNS record. Defaults to 1h.
@@ -45,7 +45,7 @@ type DNSRecordSpec struct {
 	// - "Delete" (default): actually delete the corresponding DNS record managed by this resource;
 	// - "Retain": do not delete the actual DNS record managed by this resource.
 	// +optional
-	DeletionPolicy DeletionPolicy `json:"deletionPolicy,omitempty"`
+	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
 // DNSRecordContent represents the actual contents of a DNS record.
@@ -54,26 +54,26 @@ type DNSRecordContent struct {
 	// A record.
 	// +kubebuilder:validation:Format=ipv4
 	// +optional
-	A string `json:"a,omitempty"`
+	A *string `json:"a,omitempty"`
 
 	// AAAA record.
 	// +kubebuilder:validation:Format=ipv6
 	// +optional
-	AAAA string `json:"aaaa,omitempty"`
+	AAAA *string `json:"aaaa,omitempty"`
 
 	// CNAME record.
 	// +kubebuilder:validation:MinLength=0
 	// +optional
-	CNAME string `json:"cname,omitempty"`
+	CNAME *string `json:"cname,omitempty"`
 
 	// TXT record.
 	// +optional
-	TXT string `json:"txt,omitempty"`
+	TXT *string `json:"txt,omitempty"`
 
 	// NS record.
 	// +kubebuilder:validation:MinLength=0
 	// +optional
-	NS string `json:"ns,omitempty"`
+	NS *string `json:"ns,omitempty"`
 
 	// MX record.
 	// +optional

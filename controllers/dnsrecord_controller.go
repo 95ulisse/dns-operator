@@ -22,6 +22,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
@@ -46,8 +47,8 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	ctx := context.Background()
 	log := r.Log.WithValues("dnsrecord", req.NamespacedName)
 
-	log.V(1).Info(fmt.Sprintf("Starting reconcile loop for %v", req.NamespacedName))
-	defer log.V(1).Info(fmt.Sprintf("Finish reconcile loop for %v", req.NamespacedName))
+	log.V(1).Info("Starting reconcile loop")
+	defer log.V(1).Info("Finish reconcile loop")
 
 	// Retrieve the record by name
 	var record dnsv1alpha1.DNSRecord
@@ -59,26 +60,78 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
+	// Retrieve the provider
+	refName := record.Spec.ProviderRef.Name
+	refNamespace := record.Spec.ProviderRef.Namespace
+	if refNamespace == nil {
+		refNamespace = &record.Namespace
+	}
+	var providerKey types.NamespacedName = types.NamespacedName{
+		Name:      refName,
+		Namespace: *refNamespace,
+	}
+	var provider dnsv1alpha1.DNSProvider
+	if err := r.Get(ctx, providerKey, &provider); err != nil {
+		log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
+		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	log.V(1).Info(fmt.Sprintf("Found provider %v", providerKey))
+
 	return ctrl.Result{}, nil
 }
 
 // listRecordsUsingProvider returns a list of the names of DNSRecords resources that reference the given DNSProvider.
-func (r *DNSRecordReconciler) listRecordsUsingProvider(obj handler.MapObject) []ctrl.Request {
+func (r *DNSRecordReconciler) listRecordsUsingProvider(provider handler.MapObject) []ctrl.Request {
+
+	// Filter all the DNSRecords using the provider referencing the given provider by name.
+	// We do not check the namespace of the records because records can leave the namespace
+	// of the reference unspecified, and we cannot filter on un set fields.
+	//
+	// TODO: This can be solved using a defaulting webhook that automatically applies
+	// the correct DNSProvider ref namespace, so that we can index it.
 	listOptions := []client.ListOption{
-		// matching our index
-		client.MatchingField(".spec.providerRef.name", obj.Meta.GetName()),
-		client.MatchingField(".spec.providerRef.namespace", obj.Meta.GetNamespace()),
+		client.MatchingField(".spec.providerRef.name", provider.Meta.GetName()),
 	}
 	var list dnsv1alpha1.DNSRecordList
 	if err := r.List(context.Background(), &list, listOptions...); err != nil {
-		r.Log.Error(err, "Cannot list DNSRecords impacted by a change to the DNSProvider %s/%s", obj.Meta.GetNamespace(), obj.Meta.GetName())
+		r.Log.Error(
+			err,
+			"Cannot list DNSRecords impacted by a change to DNSProvider",
+			"dnsprovider", fmt.Sprintf("%s/%s", provider.Meta.GetNamespace(), provider.Meta.GetName()),
+		)
 		return nil
 	}
-	res := make([]ctrl.Request, len(list.Items))
-	for i, record := range list.Items {
-		res[i].Name = record.Name
-		res[i].Namespace = record.Namespace
+
+	var res []ctrl.Request
+	for _, record := range list.Items {
+
+		// By default, if the provider reference of this record does not include a namespace,
+		// use the same namespace of the record itself.
+		refName := record.Spec.ProviderRef.Name
+		refNamespace := record.Spec.ProviderRef.Namespace
+		if refNamespace == nil {
+			refNamespace = &record.Namespace
+		}
+
+		// Select this record for reconciling if the provider ref matches the changed provider
+		if refName == provider.Meta.GetName() && *refNamespace == provider.Meta.GetNamespace() {
+			res = append(res, ctrl.Request{
+				NamespacedName: types.NamespacedName{
+					Name:      record.Name,
+					Namespace: record.Namespace,
+				},
+			})
+		}
+
 	}
+
+	r.Log.V(1).Info(
+		"Enqueued reconciling of DNSRecord due to a change to DNSProvider",
+		"count", len(res),
+		"dnsprovider", fmt.Sprintf("%s/%s", provider.Meta.GetNamespace(), provider.Meta.GetName()),
+	)
+
 	return res
 }
 
@@ -91,16 +144,6 @@ func (r *DNSRecordReconciler) SetupWithManager(mgr ctrl.Manager) error {
 		".spec.providerRef.name",
 		func(obj runtime.Object) []string {
 			providerName := obj.(*dnsv1alpha1.DNSRecord).Spec.ProviderRef.Name
-			if providerName == "" {
-				return nil
-			}
-			return []string{providerName}
-		})
-	mgr.GetFieldIndexer().IndexField(
-		&dnsv1alpha1.DNSRecord{},
-		".spec.providerRef.namespace",
-		func(obj runtime.Object) []string {
-			providerName := obj.(*dnsv1alpha1.DNSRecord).Spec.ProviderRef.Namespace
 			if providerName == "" {
 				return nil
 			}

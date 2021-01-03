@@ -39,19 +39,19 @@ type DNSProviderRFC2136 struct {
 	// The name of the secret containing the TSIG value.
 	// If ``tsigKeyName`` is defined, this field is required.
 	// +optional
-	TSIGSecret SecretReference `json:"tsigSecretRef,omitempty"`
+	TSIGSecret *SecretReference `json:"tsigSecretRef,omitempty"`
 
 	// The TSIG Key name configured in the DNS.
 	// If ``tsigSecretSecretRef`` is defined, this field is required.
 	// +optional
-	TSIGKeyName string `json:"tsigKeyName,omitempty"`
+	TSIGKeyName *string `json:"tsigKeyName,omitempty"`
 
 	// The TSIG Algorithm configured in the DNS supporting RFC2136. Used only
 	// when ``tsigSecretSecretRef`` and ``tsigKeyName`` are defined.
 	// Supported values are (case-insensitive): ``HMACMD5`` (default),
 	// ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.
 	// +optional
-	TSIGAlgorithm string `json:"tsigAlgorithm,omitempty"`
+	TSIGAlgorithm *string `json:"tsigAlgorithm,omitempty"`
 }
 
 // +kubebuilder:object:root=true
