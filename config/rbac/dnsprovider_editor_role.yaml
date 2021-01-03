@@ -1,0 +1,24 @@
+# permissions for end users to edit dnsproviders.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: dnsprovider-editor-role
+rules:
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsproviders
+  verbs:
+  - create
+  - delete
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsproviders/status
+  verbs:
+  - get

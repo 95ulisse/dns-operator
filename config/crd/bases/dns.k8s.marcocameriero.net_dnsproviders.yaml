@@ -1,0 +1,90 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: dnsproviders.dns.k8s.marcocameriero.net
+spec:
+  group: dns.k8s.marcocameriero.net
+  names:
+    kind: DNSProvider
+    listKind: DNSProviderList
+    plural: dnsproviders
+    singular: dnsprovider
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DNSProvider is the Schema for the dnsproviders API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DNSProviderSpec defines the desired state of DNSProvider.
+              Only one of the providers can be configured.
+            properties:
+              rfc2136:
+                description: Use RFC2136 ("Dynamic Updates in the Domain Name System")
+                  (https://datatracker.ietf.org/doc/rfc2136/) to manage records.
+                properties:
+                  nameserver:
+                    description: The IP address or hostname of an authoritative DNS
+                      server supporting RFC2136 in the form host:port. If the host
+                      is an IPv6 address it must be enclosed in square brackets (e.g
+                      [2001:db8::1]) ; port is optional. This field is required.
+                    type: string
+                  tsigAlgorithm:
+                    description: 'The TSIG Algorithm configured in the DNS supporting
+                      RFC2136. Used only when ``tsigSecretSecretRef`` and ``tsigKeyName``
+                      are defined. Supported values are (case-insensitive): ``HMACMD5``
+                      (default), ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.'
+                    type: string
+                  tsigKeyName:
+                    description: The TSIG Key name configured in the DNS. If ``tsigSecretSecretRef``
+                      is defined, this field is required.
+                    type: string
+                  tsigSecretRef:
+                    description: The name of the secret containing the TSIG value.
+                      If ``tsigKeyName`` is defined, this field is required.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used. Some instances of this field may
+                          be defaulted, in others it may be required.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - nameserver
+                type: object
+            type: object
+        type: object
+    served: true
+    storage: true
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

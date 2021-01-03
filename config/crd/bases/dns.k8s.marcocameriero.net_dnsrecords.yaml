@@ -1,0 +1,135 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: dnsrecords.dns.k8s.marcocameriero.net
+spec:
+  group: dns.k8s.marcocameriero.net
+  names:
+    kind: DNSRecord
+    listKind: DNSRecordList
+    plural: dnsrecords
+    singular: dnsrecord
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: RR Name
+      type: string
+    - jsonPath: .spec.content
+      name: RR Data
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DNSRecord is the Schema for the dnsrecords API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DNSRecordSpec defines the desired state of DNSRecord
+            properties:
+              content:
+                description: Content of the DNS record. The meaning of the content
+                  field depends on the type of record. This fiels is required.
+                properties:
+                  a:
+                    description: A record.
+                    format: ipv4
+                    type: string
+                  aaaa:
+                    description: AAAA record.
+                    format: ipv6
+                    type: string
+                  cname:
+                    description: CNAME record.
+                    minLength: 0
+                    type: string
+                  mx:
+                    description: MX record.
+                    properties:
+                      name:
+                        description: Name pointed by the MX record.
+                        minLength: 0
+                        type: string
+                      priority:
+                        description: Priority of the MX record.
+                        format: int64
+                        minimum: 0
+                        type: integer
+                    required:
+                    - name
+                    - priority
+                    type: object
+                  ns:
+                    description: NS record.
+                    minLength: 0
+                    type: string
+                  txt:
+                    description: TXT record.
+                    type: string
+                type: object
+              deletionPolicy:
+                description: 'Specifies how to treat deletion of this DNSRecord. Valid
+                  values are: - "Delete" (default): actually delete the corresponding
+                  DNS record managed by this resource; - "Retain": do not delete the
+                  actual DNS record managed by this resource.'
+                enum:
+                - Delete
+                - Retain
+                type: string
+              name:
+                description: Name of the DNS record. This field is required.
+                minLength: 0
+                type: string
+              providerRef:
+                description: Reference to the DNSProvider managing this DNSRecord.
+                properties:
+                  name:
+                    description: Name of the resource being referred.
+                    type: string
+                  namespace:
+                    description: Name of the namespace of the resource being referred.
+                    type: string
+                required:
+                - name
+                type: object
+              ttlSeconds:
+                description: TTL in seconds of the DNS record. Defaults to 1h.
+                format: int64
+                maximum: 604800
+                minimum: 1
+                type: integer
+            required:
+            - content
+            - name
+            - providerRef
+            type: object
+          status:
+            description: DNSRecordStatus defines the observed state of DNSRecord
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []

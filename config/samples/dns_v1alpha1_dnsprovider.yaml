@@ -1,0 +1,12 @@
+apiVersion: dns.k8s.marcocameriero.net/v1alpha1
+kind: DNSProvider
+metadata:
+  name: main-provider
+  namespace: dns-operator
+spec:
+  rfc2136:
+    nameserver: 127.0.0.1
+    tsigSecretRef:
+      name: main-provider-tsig-secret
+    tsigKeyName: key1
+    tsigAlgorithm: HMACSHA512

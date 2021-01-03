@@ -1,0 +1,11 @@
+apiVersion: dns.k8s.marcocameriero.net/v1alpha1
+kind: DNSRecord
+metadata:
+  name: bazinga
+  namespace: dns-operator
+spec:
+  providerRef:
+    name: main-provider
+  name: bazinga.example.com
+  content:
+    aa: 1.1.1.1
