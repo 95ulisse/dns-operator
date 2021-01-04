@@ -37,6 +37,9 @@ spec:
             description: DNSProviderSpec defines the desired state of DNSProvider.
               Only one of the providers can be configured.
             properties:
+              dummy:
+                description: Dummy provider used for debugging.
+                type: boolean
               rfc2136:
                 description: Use RFC2136 ("Dynamic Updates in the Domain Name System")
                   (https://datatracker.ietf.org/doc/rfc2136/) to manage records.

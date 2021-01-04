@@ -23,6 +23,10 @@ import (
 // DNSProviderSpec defines the desired state of DNSProvider.
 // Only one of the providers can be configured.
 type DNSProviderSpec struct {
+	// Dummy provider used for debugging.
+	// +optional
+	Dummy *bool `json:"dummy,omitempty"`
+
 	// Use RFC2136 ("Dynamic Updates in the Domain Name System") (https://datatracker.ietf.org/doc/rfc2136/) to manage records.
 	// +optional
 	RFC2136 *DNSProviderRFC2136 `json:"rfc2136,omitempty"`

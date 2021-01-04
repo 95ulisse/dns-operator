@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/go-logr/logr"
+	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -29,7 +30,11 @@ import (
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	dnsv1alpha1 "github.com/95ulisse/dns-operator/api/v1alpha1"
+	helpers "github.com/95ulisse/dns-operator/pkg/helpers"
+	providers "github.com/95ulisse/dns-operator/pkg/providers"
 )
+
+const finalizerName = "dns.k8s.marcocameriero.net/finalizer"
 
 // DNSRecordReconciler reconciles a DNSRecord object
 type DNSRecordReconciler struct {
@@ -50,15 +55,23 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	log.V(1).Info("Starting reconcile loop")
 	defer log.V(1).Info("Finish reconcile loop")
 
+	// Step 1: Retrive the DNSRecord to reconcile
+	// ==========================================
+
 	// Retrieve the record by name
 	var record dnsv1alpha1.DNSRecord
 	if err := r.Get(ctx, req.NamespacedName, &record); err != nil {
-		log.Error(err, "Unable to fetch DNSRecord")
 		// We'll ignore not-found errors, since they can't be fixed by an immediate
 		// requeue (we'll need to wait for a new notification), and we can get them
 		// on deleted requests.
+		if !apierrors.IsNotFound(err) {
+			log.Error(err, "Unable to fetch DNSRecord")
+		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
+
+	// Step 2: Retrieve and build the referenced DNSProvider
+	// =====================================================
 
 	// Retrieve the provider
 	refName := record.Spec.ProviderRef.Name
@@ -71,12 +84,94 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		Namespace: *refNamespace,
 	}
 	var provider dnsv1alpha1.DNSProvider
+	var providerFound = true
 	if err := r.Get(ctx, providerKey, &provider); err != nil {
-		log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
-		return ctrl.Result{}, client.IgnoreNotFound(err)
+		if !apierrors.IsNotFound(err) {
+			log.Error(err, "Unable to fetch DNSProvider")
+			return ctrl.Result{}, err
+		}
+		providerFound = false
 	}
 
-	log.V(1).Info(fmt.Sprintf("Found provider %v", providerKey))
+	log.V(1).Info("Provider found", "dnsprovider", providerKey)
+
+	// Builds an actual provider from its description in the kube resource
+	var p providers.Provider
+	if providerFound {
+		var err error
+		p, err = providers.FromKubernetesResource(&provider, r, log)
+		if err != nil {
+			return ctrl.Result{}, err
+		}
+		log.V(1).Info("Provider built", "dnsprovider", providerKey)
+	}
+
+	// Step 3: Process any pending finalizers
+	// ======================================
+
+	// Examine DeletionTimestamp to determine if object is under deletion
+	if record.ObjectMeta.DeletionTimestamp.IsZero() {
+		// The object is not being deleted, so if it does not have our finalizer,
+		// lets add the finalizer and update the object. This is equivalent to registering our finalizer.
+		if !helpers.ContainsString(record.ObjectMeta.Finalizers, finalizerName) {
+			record.ObjectMeta.Finalizers = append(record.ObjectMeta.Finalizers, finalizerName)
+			if err := r.Update(ctx, &record); err != nil {
+				return ctrl.Result{}, err
+			}
+			log.V(1).Info("Finalizer registered")
+		}
+	} else {
+
+		// The object is being deleted, so execute the finalizer
+		if helpers.ContainsString(record.ObjectMeta.Finalizers, finalizerName) {
+
+			// Actually delete the record from the provider only if the user does not want us to retain the actual record
+			if record.Spec.DeletionPolicy == nil || *record.Spec.DeletionPolicy == dnsv1alpha1.DeletePolicy {
+
+				if !providerFound {
+					err := fmt.Errorf("Cannot find DNSProvider %v", providerKey)
+					log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
+					return ctrl.Result{}, err
+				}
+
+				log.V(1).Info("Deleting record")
+
+				if err := p.DeleteRecord(&record); err != nil {
+					log.Error(err, "Cannot delete DNSRecord")
+					return ctrl.Result{}, err
+				}
+
+			}
+
+			// remove our finalizer from the list and update it.
+			record.ObjectMeta.Finalizers = helpers.RemoveString(record.ObjectMeta.Finalizers, finalizerName)
+			if err := r.Update(ctx, &record); err != nil {
+				return ctrl.Result{}, err
+			}
+
+			log.Info("Record deleted")
+		}
+
+		// Stop reconciliation as the item is being deleted
+		return ctrl.Result{}, nil
+	}
+
+	// Step 4: Update the DNS record
+	// =============================
+
+	if !providerFound {
+		err := fmt.Errorf("Cannot find DNSProvider %v", providerKey)
+		log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
+		return ctrl.Result{}, err
+	}
+
+	// Let the magic happen
+	if err := p.UpdateRecord(&record); err != nil {
+		log.Error(err, "Cannot update update DNS record", "dnsprovider", providerKey)
+		return ctrl.Result{}, err
+	}
+
+	log.Info("Successfully updated record")
 
 	return ctrl.Result{}, nil
 }
