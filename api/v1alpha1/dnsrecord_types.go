@@ -38,7 +38,7 @@ type DNSRecordSpec struct {
 	// +kubebuilder:validation:Minimum=1
 	// +kubebuilder:validation:Maximum=604800
 	// +optional
-	TTLSeconds *int64 `json:"ttlSeconds,omitempty"`
+	TTLSeconds *uint32 `json:"ttlSeconds,omitempty"`
 
 	// Specifies how to treat deletion of this DNSRecord.
 	// Valid values are:

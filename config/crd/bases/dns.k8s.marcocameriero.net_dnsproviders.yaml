@@ -53,8 +53,8 @@ spec:
                   tsigAlgorithm:
                     description: 'The TSIG Algorithm configured in the DNS supporting
                       RFC2136. Used only when ``tsigSecretSecretRef`` and ``tsigKeyName``
-                      are defined. Supported values are (case-insensitive): ``HMACMD5``
-                      (default), ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.'
+                      are defined. Supported values are (case-insensitive): ``HMACMD5``,
+                      ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.'
                     type: string
                   tsigKeyName:
                     description: The TSIG Key name configured in the DNS. If ``tsigSecretSecretRef``
@@ -66,8 +66,7 @@ spec:
                     properties:
                       key:
                         description: The key of the entry in the Secret resource's
-                          `data` field to be used. Some instances of this field may
-                          be defaulted, in others it may be required.
+                          `data` field to be used.
                         type: string
                       name:
                         description: Name of the resource being referred.
@@ -81,6 +80,11 @@ spec:
                 required:
                 - nameserver
                 type: object
+              zone:
+                description: DNS zone handled by this provider.
+                type: string
+            required:
+            - zone
             type: object
         type: object
     served: true

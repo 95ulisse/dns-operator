@@ -23,6 +23,10 @@ import (
 // DNSProviderSpec defines the desired state of DNSProvider.
 // Only one of the providers can be configured.
 type DNSProviderSpec struct {
+
+	// DNS zone handled by this provider.
+	Zone string `json:"zone"`
+
 	// Dummy provider used for debugging.
 	// +optional
 	Dummy *bool `json:"dummy,omitempty"`
@@ -43,7 +47,7 @@ type DNSProviderRFC2136 struct {
 	// The name of the secret containing the TSIG value.
 	// If ``tsigKeyName`` is defined, this field is required.
 	// +optional
-	TSIGSecret *SecretReference `json:"tsigSecretRef,omitempty"`
+	TSIGSecretRef *SecretReference `json:"tsigSecretRef,omitempty"`
 
 	// The TSIG Key name configured in the DNS.
 	// If ``tsigSecretSecretRef`` is defined, this field is required.
@@ -52,7 +56,7 @@ type DNSProviderRFC2136 struct {
 
 	// The TSIG Algorithm configured in the DNS supporting RFC2136. Used only
 	// when ``tsigSecretSecretRef`` and ``tsigKeyName`` are defined.
-	// Supported values are (case-insensitive): ``HMACMD5`` (default),
+	// Supported values are (case-insensitive): ``HMACMD5``,
 	// ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.
 	// +optional
 	TSIGAlgorithm *string `json:"tsigAlgorithm,omitempty"`

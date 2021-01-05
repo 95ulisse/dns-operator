@@ -31,8 +31,5 @@ type SecretReference struct {
 	ObjectReference `json:",inline"`
 
 	// The key of the entry in the Secret resource's `data` field to be used.
-	// Some instances of this field may be defaulted, in others it may be
-	// required.
-	// +optional
-	Key *string `json:"key,omitempty"`
+	Key string `json:"key,omitempty"`
 }
