@@ -4,9 +4,12 @@ metadata:
   name: main-provider
   namespace: dns-operator
 spec:
+  zone: example.com
   rfc2136:
-    nameserver: 127.0.0.1
-    tsigSecretRef:
-      name: main-provider-tsig-secret
-    tsigKeyName: key1
+    nameserver: powerdns-server.default.svc.cluster.local:5301
     tsigAlgorithm: HMACSHA512
+    tsigKeyName: dns-operator
+    tsigSecretRef:
+      key: key
+      name: main-provider-tsig-secret
+
