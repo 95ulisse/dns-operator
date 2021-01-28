@@ -15,8 +15,11 @@ import (
 var nameRegexp = regexp.MustCompile("^(?:(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])\\.)*(?:[a-zA-Z0-9]|[a-zA-Z0-9][a-zA-Z0-9\\-]{0,61}[a-zA-Z0-9])\\.?$")
 
 // Name represents a valid DNS resource name.
+// +kubebuilder:validation:Type=string
 type Name struct {
-	name string
+	// We have a json tag here only because kubebuilder cannot handle a struct without tags,
+	// but we have our own custom (un)marshalling functions for this type.
+	name string `json:",inline"`
 }
 
 // NewName validates the given domain name and constructs a new Name.

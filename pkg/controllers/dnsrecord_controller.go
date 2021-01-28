@@ -23,15 +23,16 @@ import (
 	"github.com/go-logr/logr"
 	apierrors "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/runtime"
-	"k8s.io/apimachinery/pkg/types"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
-	dnsv1alpha1 "github.com/95ulisse/dns-operator/api/v1alpha1"
+	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
+	"github.com/95ulisse/dns-operator/pkg/dnsname"
 	helpers "github.com/95ulisse/dns-operator/pkg/helpers"
-	providers "github.com/95ulisse/dns-operator/pkg/providers"
+	"github.com/95ulisse/dns-operator/pkg/types"
 )
 
 const finalizerName = "dns.k8s.marcocameriero.net/finalizer"
@@ -39,17 +40,17 @@ const finalizerName = "dns.k8s.marcocameriero.net/finalizer"
 // DNSRecordReconciler reconciles a DNSRecord object
 type DNSRecordReconciler struct {
 	client.Client
-	Log    logr.Logger
-	Scheme *runtime.Scheme
+	Log     logr.Logger
+	Scheme  *runtime.Scheme
+	Context *types.ControllerContext
 }
 
-// +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsproviders,verbs=get;list;watch
 // +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsrecords,verbs=get;list;watch
 // +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsrecords/status,verbs=get;update;patch
 
 // Reconcile performs an iteration of the reconcile loop for a DNSRecord.
 func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
-	ctx := context.Background()
+	ctx := r.Context.RootContext
 	log := r.Log.WithValues("dnsrecord", req.NamespacedName)
 
 	log.V(1).Info("Starting reconcile loop")
@@ -70,8 +71,14 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, client.IgnoreNotFound(err)
 	}
 
-	// Step 2: Retrieve and build the referenced DNSProvider
-	// =====================================================
+	// Extract the RR from the record
+	rr, err := record.ToRR()
+	if err != nil {
+		return ctrl.Result{}, err
+	}
+
+	// Step 2: Retrieve the referenced DNSProvider
+	// ===========================================
 
 	// Retrieve the provider
 	refName := record.Spec.ProviderRef.Name
@@ -79,31 +86,17 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	if refNamespace == nil {
 		refNamespace = &record.Namespace
 	}
-	var providerKey types.NamespacedName = types.NamespacedName{
-		Name:      refName,
-		Namespace: *refNamespace,
-	}
-	var provider dnsv1alpha1.DNSProvider
-	var providerFound = true
-	if err := r.Get(ctx, providerKey, &provider); err != nil {
-		if !apierrors.IsNotFound(err) {
-			log.Error(err, "Unable to fetch DNSProvider")
-			return ctrl.Result{}, err
-		}
-		providerFound = false
-	}
+	providerNamespacedName := fmt.Sprintf("%s/%s", *refNamespace, refName)
+	var provider types.Provider
+	providerFound := r.Context.GetProvider(providerNamespacedName, &provider)
 
-	log.V(1).Info("Provider found", "dnsprovider", providerKey)
-
-	// Builds an actual provider from its description in the kube resource
-	var p providers.Provider
+	// Check that the provider manages a zone containing this record
+	var zone dnsname.Name
 	if providerFound {
-		var err error
-		p, err = providers.FromKubernetesResource(&provider, r, log)
-		if err != nil {
+		if !getMatchingZone(provider.Zones(), record.Spec.Name, &zone) {
+			err := fmt.Errorf("Provider %s does not support a zone matching record %s", providerNamespacedName, record.Spec.Name.String())
 			return ctrl.Result{}, err
 		}
-		log.V(1).Info("Provider built", "dnsprovider", providerKey)
 	}
 
 	// Step 3: Process any pending finalizers
@@ -129,14 +122,14 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			if record.Spec.DeletionPolicy == nil || *record.Spec.DeletionPolicy == dnsv1alpha1.DeletePolicy {
 
 				if !providerFound {
-					err := fmt.Errorf("Cannot find DNSProvider %v", providerKey)
-					log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
+					err := fmt.Errorf("Cannot find DNSProvider %s", providerNamespacedName)
+					log.Error(err, "Cannot delete DNSRecord")
 					return ctrl.Result{}, err
 				}
 
 				log.V(1).Info("Deleting record")
 
-				if err := p.DeleteRecord(&record); err != nil {
+				if err := provider.DeleteRecord(zone, rr); err != nil {
 					log.Error(err, "Cannot delete DNSRecord")
 					return ctrl.Result{}, err
 				}
@@ -160,14 +153,14 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// =============================
 
 	if !providerFound {
-		err := fmt.Errorf("Cannot find DNSProvider %v", providerKey)
-		log.Error(err, "Cannot find DNSProvider", "dnsprovider", providerKey)
+		err := fmt.Errorf("Cannot find DNSProvider %s", providerNamespacedName)
+		log.Error(err, "Cannot update DNSRecord")
 		return ctrl.Result{}, err
 	}
 
 	// Let the magic happen
-	if err := p.UpdateRecord(&record); err != nil {
-		log.Error(err, "Cannot update update DNS record", "dnsprovider", providerKey)
+	if err := provider.UpdateRecord(zone, rr); err != nil {
+		log.Error(err, "Cannot update update DNS record")
 		return ctrl.Result{}, err
 	}
 
@@ -212,7 +205,7 @@ func (r *DNSRecordReconciler) listRecordsUsingProvider(provider handler.MapObjec
 		// Select this record for reconciling if the provider ref matches the changed provider
 		if refName == provider.Meta.GetName() && *refNamespace == provider.Meta.GetNamespace() {
 			res = append(res, ctrl.Request{
-				NamespacedName: types.NamespacedName{
+				NamespacedName: k8stypes.NamespacedName{
 					Name:      record.Name,
 					Namespace: record.Namespace,
 				},
@@ -228,6 +221,33 @@ func (r *DNSRecordReconciler) listRecordsUsingProvider(provider handler.MapObjec
 	)
 
 	return res
+}
+
+func getMatchingZone(zones []dnsname.Name, record dnsname.Name, out *dnsname.Name) bool {
+
+	// Filter only the zones containing the target record
+	found := make([]dnsname.Name, 0, 1)
+	for _, z := range zones {
+		if record.IsChildOf(&z) {
+			found = append(found, z)
+		}
+	}
+
+	if len(found) == 0 {
+		return false
+	}
+
+	// Find the longest name
+	longest := found[0]
+	for i, z := range found {
+		if i > 0 && len(longest.ToFQDN().String()) < len(z.ToFQDN().String()) {
+			longest = z
+		}
+	}
+
+	*out = longest
+	return true
+
 }
 
 // SetupWithManager registers the DNSRecord controller with the given Manager.

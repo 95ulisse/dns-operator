@@ -17,6 +17,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"flag"
 	"os"
 
@@ -26,8 +27,9 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/log/zap"
 
-	dnsv1alpha1 "github.com/95ulisse/dns-operator/api/v1alpha1"
-	"github.com/95ulisse/dns-operator/controllers"
+	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
+	"github.com/95ulisse/dns-operator/pkg/controllers"
+	"github.com/95ulisse/dns-operator/pkg/types"
 	// +kubebuilder:scaffold:imports
 )
 
@@ -66,12 +68,30 @@ func main() {
 		os.Exit(1)
 	}
 
+	// Prepare a shared context for the controllers
+	ctx := &types.ControllerContext{
+		RootContext: context.Background(),
+		Client:      mgr.GetClient(),
+		Log:         ctrl.Log,
+	}
+
+	// Register the controllers with the manager
 	if err = (&controllers.DNSRecordReconciler{
-		Client: mgr.GetClient(),
-		Log:    ctrl.Log.WithName("controllers").WithName("DNSRecord"),
-		Scheme: mgr.GetScheme(),
+		Client:  mgr.GetClient(),
+		Log:     ctrl.Log.WithName("controllers").WithName("DNSRecord"),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
 	}).SetupWithManager(mgr); err != nil {
 		setupLog.Error(err, "unable to create controller", "controller", "DNSRecord")
+		os.Exit(1)
+	}
+	if err = (&controllers.DNSProviderReconciler{
+		Client:  mgr.GetClient(),
+		Log:     ctrl.Log.WithName("controllers").WithName("DNSProvider"),
+		Scheme:  mgr.GetScheme(),
+		Context: ctx,
+	}).SetupWithManager(mgr); err != nil {
+		setupLog.Error(err, "unable to create controller", "controller", "DNSProvider")
 		os.Exit(1)
 	}
 	// +kubebuilder:scaffold:builder

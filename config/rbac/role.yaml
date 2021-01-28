@@ -17,6 +17,14 @@ rules:
 - apiGroups:
   - dns.k8s.marcocameriero.net
   resources:
+  - dnsproviders/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
   - dnsrecords
   verbs:
   - get

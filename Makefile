@@ -47,7 +47,7 @@ fmt:
 
 # Run go vet against code
 vet:
-	go vet ./...
+	go vet -structtag=false ./...
 
 # Generate code
 generate: controller-gen

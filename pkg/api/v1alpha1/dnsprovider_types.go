@@ -17,6 +17,9 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+
+	"github.com/95ulisse/dns-operator/pkg/dnsname"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -24,8 +27,10 @@ import (
 // Only one of the providers can be configured.
 type DNSProviderSpec struct {
 
-	// DNS zone handled by this provider.
-	Zone string `json:"zone"`
+	// DNS zones handled by this provider.
+	// At least one zone must be present.
+	// +kubebuilder:validation:MinItems=1
+	Zones []dnsname.Name `json:"zones"`
 
 	// Dummy provider used for debugging.
 	// +optional
@@ -79,6 +84,17 @@ type DNSProviderList struct {
 	metav1.TypeMeta `json:",inline"`
 	metav1.ListMeta `json:"metadata,omitempty"`
 	Items           []DNSProvider `json:"items"`
+}
+
+// GetProviderType returns a string representing the type of the provider represented by this resource.
+func (resource *DNSProvider) GetProviderType() (string, error) {
+	if resource.Spec.Dummy != nil {
+		return "dummy", nil
+	} else if resource.Spec.RFC2136 != nil {
+		return "rfc2136", nil
+	} else {
+		return "", fmt.Errorf("Unknown provider type")
+	}
 }
 
 func init() {

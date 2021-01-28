@@ -17,6 +17,11 @@ limitations under the License.
 package v1alpha1
 
 import (
+	"fmt"
+	"net"
+
+	"github.com/95ulisse/dns-operator/pkg/dnsname"
+	"github.com/miekg/dns"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,8 +32,7 @@ type DNSRecordSpec struct {
 
 	// Name of the DNS record.
 	// This field is required.
-	// +kubebuilder:validation:MinLength=0
-	Name string `json:"name"`
+	Name dnsname.Name `json:"name"`
 
 	// Content of the DNS record. The meaning of the content field depends on the type of record.
 	// This field is required.
@@ -107,6 +111,40 @@ type DNSRecord struct {
 
 	Spec   DNSRecordSpec   `json:"spec,omitempty"`
 	Status DNSRecordStatus `json:"status,omitempty"`
+}
+
+// ToRR builds a new dns.RR equivalent to the Spec of this DNSRecord resource.
+func (record *DNSRecord) ToRR() (dns.RR, error) {
+
+	// Prepare a common header
+	header := dns.RR_Header{
+		Name:  record.Spec.Name.ToFQDN().String(),
+		Class: dns.ClassINET,
+		Ttl:   3600,
+	}
+	if record.Spec.TTLSeconds != nil {
+		header.Ttl = *record.Spec.TTLSeconds
+	}
+
+	// A record
+	if record.Spec.Content.A != nil {
+		ip := net.ParseIP(*record.Spec.Content.A)
+		if ip == nil {
+			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
+		}
+		ip = ip.To4()
+		if ip == nil {
+			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
+		}
+
+		rr := new(dns.A)
+		rr.Hdr = header
+		rr.Hdr.Rrtype = dns.TypeA
+		rr.A = ip
+		return rr, nil
+	}
+
+	return nil, fmt.Errorf("Unsupported DNS record")
 }
 
 // +kubebuilder:object:root=true

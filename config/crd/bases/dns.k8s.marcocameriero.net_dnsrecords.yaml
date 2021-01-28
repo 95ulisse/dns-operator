@@ -94,7 +94,6 @@ spec:
                 type: string
               name:
                 description: Name of the DNS record. This field is required.
-                minLength: 0
                 type: string
               providerRef:
                 description: Reference to the DNSProvider managing this DNSRecord.

@@ -4,7 +4,8 @@ metadata:
   name: main-provider
   namespace: dns-operator
 spec:
-  zone: example.com
+  zones:
+    - example.com
   rfc2136:
     nameserver: powerdns-server.default.svc.cluster.local:5301
     tsigAlgorithm: HMACSHA512

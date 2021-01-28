@@ -80,11 +80,16 @@ spec:
                 required:
                 - nameserver
                 type: object
-              zone:
-                description: DNS zone handled by this provider.
-                type: string
+              zones:
+                description: DNS zones handled by this provider. At least one zone
+                  must be present.
+                items:
+                  description: Name represents a valid DNS resource name.
+                  type: string
+                minItems: 1
+                type: array
             required:
-            - zone
+            - zones
             type: object
         type: object
     served: true

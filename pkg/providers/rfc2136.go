@@ -3,17 +3,19 @@ package providers
 import (
 	"context"
 	"fmt"
-	"net"
 	"strings"
 	"time"
 
 	"github.com/go-logr/logr"
 	"github.com/miekg/dns"
+
 	corev1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
+	k8stypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	dnsv1alpha1 "github.com/95ulisse/dns-operator/api/v1alpha1"
+	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
+	"github.com/95ulisse/dns-operator/pkg/dnsname"
+	"github.com/95ulisse/dns-operator/pkg/types"
 )
 
 var supportedAlgorithms = map[string]string{
@@ -28,23 +30,48 @@ var supportedAlgorithms = map[string]string{
 type RFC2136 struct {
 	log        logr.Logger
 	client     *dns.Client
-	zone       string
+	zones      []dnsname.Name
+	nameserver string
 	useTsig    bool
 	keyName    string
 	algorithm  string
-	nameserver string
+}
+
+// NewRFC2136 creates a new DNS provider which uses Dynamic DNS for updates.
+func NewRFC2136(log logr.Logger, zones []dnsname.Name, nameserver string) *RFC2136 {
+	client := new(dns.Client)
+	client.SingleInflight = true
+
+	return &RFC2136{
+		log:        log.WithName("providers").WithName("RFC2136"),
+		client:     client,
+		zones:      zones,
+		nameserver: nameserver,
+	}
+}
+
+// WithTsig configures transaction signatures for DNS updates.
+func (provider *RFC2136) WithTsig(secret, keyName, algorithm string) *RFC2136 {
+	provider.client.TsigSecret = make(map[string]string)
+	provider.client.TsigSecret[keyName] = secret
+	provider.keyName = keyName
+	provider.algorithm = algorithm
+	provider.useTsig = true
+	return provider
+}
+
+// Zones returns a slice containing the DNS zones managed by this provider.
+func (provider *RFC2136) Zones() []dnsname.Name {
+	return provider.zones
 }
 
 // UpdateRecord updates a record on the backend server.
-func (provider *RFC2136) UpdateRecord(record *dnsv1alpha1.DNSRecord) error {
+func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rr dns.RR) error {
 
 	// Prepare the DNS message
-	rr, err := extractRR(record)
-	if err != nil {
-		return err
-	}
 	msg := new(dns.Msg)
-	msg.SetUpdate(provider.zone)
+	msg.SetUpdate(zone.ToFQDN().String())
+	msg.RemoveRRset([]dns.RR{rr})
 	msg.Insert([]dns.RR{rr})
 	if provider.useTsig {
 		msg.SetTsig(provider.keyName, provider.algorithm, 300, time.Now().Unix())
@@ -59,22 +86,18 @@ func (provider *RFC2136) UpdateRecord(record *dnsv1alpha1.DNSRecord) error {
 		return fmt.Errorf("DNS update failed. Server replied: %s", dns.RcodeToString[res.Rcode])
 	}
 
-	provider.log.Info("Update successful")
+	provider.log.Info(fmt.Sprintf("Updated %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
 
 	return nil
 }
 
 // DeleteRecord deletes a record from the backend server.
-func (provider *RFC2136) DeleteRecord(record *dnsv1alpha1.DNSRecord) error {
+func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rr dns.RR) error {
 
 	// Prepare the DNS message
-	rr, err := extractRR(record)
-	if err != nil {
-		return err
-	}
 	msg := new(dns.Msg)
-	msg.SetUpdate(provider.zone)
-	msg.Remove([]dns.RR{rr})
+	msg.SetUpdate(zone.ToFQDN().String())
+	msg.RemoveRRset([]dns.RR{rr})
 	if provider.useTsig {
 		msg.SetTsig(provider.keyName, provider.algorithm, 300, time.Now().Unix())
 	}
@@ -88,19 +111,19 @@ func (provider *RFC2136) DeleteRecord(record *dnsv1alpha1.DNSRecord) error {
 		return fmt.Errorf("DNS delete failed. Server replied: %s", dns.RcodeToString[res.Rcode])
 	}
 
-	provider.log.Info("Delete successful")
+	provider.log.Info(fmt.Sprintf("Deleted %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
 
 	return nil
 }
 
-func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, dnsClient *dns.Client, k8sClient client.Client) (string, string, error) {
+func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, k8sClient client.Client) (string, string, string, error) {
 
 	// Extract the required parameters
 	secretRef := resource.Spec.RFC2136.TSIGSecretRef
 	keyName := resource.Spec.RFC2136.TSIGKeyName
 	algorithm := resource.Spec.RFC2136.TSIGAlgorithm
 	if secretRef == nil || keyName == nil || algorithm == nil {
-		return "", "", fmt.Errorf("All fields tsigSecretRef, tsigKeyName and tsigAlgorithm are required when specifying a TSIG key")
+		return "", "", "", fmt.Errorf("All fields tsigSecretRef, tsigKeyName and tsigAlgorithm are required when specifying a TSIG key")
 	}
 	if !strings.HasSuffix(*keyName, ".") {
 		appended := fmt.Sprintf("%s%s", *keyName, ".")
@@ -110,7 +133,7 @@ func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, dnsClient *dns.Client, k8
 	// Check that the algorithm name is valid
 	dnsAlgorithm, algorithmSupported := supportedAlgorithms[*algorithm]
 	if !algorithmSupported {
-		return "", "", fmt.Errorf("Unsupported TSIG key algorithm %s", *algorithm)
+		return "", "", "", fmt.Errorf("Unsupported TSIG key algorithm %s", *algorithm)
 	}
 
 	// Resolve the secret reference
@@ -120,84 +143,31 @@ func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, dnsClient *dns.Client, k8
 		secretNamespace = &resource.Namespace
 	}
 	var secret corev1.Secret
-	if err := k8sClient.Get(context.Background(), types.NamespacedName{Name: secretName, Namespace: *secretNamespace}, &secret); err != nil {
-		return "", "", err
+	if err := k8sClient.Get(context.Background(), k8stypes.NamespacedName{Name: secretName, Namespace: *secretNamespace}, &secret); err != nil {
+		return "", "", "", err
 	}
 
 	// Extract the key from the secret
 	key, keyPresent := secret.Data[secretRef.Key]
 	if !keyPresent {
-		return "", "", fmt.Errorf("Cannot find key %s in secret %s/%s", secretRef.Key, *secretNamespace, secretName)
+		return "", "", "", fmt.Errorf("Cannot find key %s in secret %s/%s", secretRef.Key, *secretNamespace, secretName)
 	}
 
-	// Configure the dns client
-	dnsClient.TsigSecret = make(map[string]string)
-	dnsClient.TsigSecret[*keyName] = string(key)
-
-	return *keyName, dnsAlgorithm, nil
-
-}
-
-func extractRR(record *dnsv1alpha1.DNSRecord) (dns.RR, error) {
-
-	var name string = dns.Fqdn(record.Spec.Name)
-	var ttl uint32 = 3600
-	if record.Spec.TTLSeconds != nil {
-		ttl = *record.Spec.TTLSeconds
-	}
-
-	// A record
-	if record.Spec.Content.A != nil {
-		ip := net.ParseIP(*record.Spec.Content.A)
-		if ip == nil {
-			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
-		}
-		ip = ip.To4()
-		if ip == nil {
-			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
-		}
-
-		rr := new(dns.A)
-		rr.Hdr = dns.RR_Header{Name: name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: ttl}
-		rr.A = ip
-		return rr, nil
-	}
-
-	return nil, fmt.Errorf("Unsupported DNS record")
+	return *keyName, string(key), dnsAlgorithm, nil
 
 }
 
 func init() {
-	RegisterProviderFactory(func(resource *dnsv1alpha1.DNSProvider, k8sClient client.Client, log logr.Logger) (Provider, error) {
-
-		// Skip this provider if not configured
-		if resource.Spec.RFC2136 == nil {
-			return nil, nil
-		}
-
-		// Prepare a DNS client pre-configured with the TSIG secrets
-		var keyName, algorithm string
-		var useTsig = resource.Spec.RFC2136.TSIGSecretRef != nil
-		dnsClient := new(dns.Client)
-		if useTsig {
-			var err error
-			if keyName, algorithm, err = extractTSIGKey(resource, dnsClient, k8sClient); err != nil {
+	RegisterProviderConstructor("rfc2136", func(ctx *types.ControllerContext, resource *dnsv1alpha1.DNSProvider) (types.Provider, error) {
+		provider := NewRFC2136(ctx.Log, resource.Spec.Zones, resource.Spec.RFC2136.Nameserver)
+		if resource.Spec.RFC2136.TSIGSecretRef != nil {
+			keyName, secret, algorithm, err := extractTSIGKey(resource, ctx.Client)
+			if err != nil {
 				return nil, err
 			}
+			provider = provider.WithTsig(secret, keyName, algorithm)
 		}
 
-		rfc2136 := RFC2136{
-			client:     dnsClient,
-			zone:       dns.Fqdn(resource.Spec.Zone),
-			useTsig:    useTsig,
-			keyName:    keyName,
-			algorithm:  algorithm,
-			nameserver: resource.Spec.RFC2136.Nameserver,
-			log: log.
-				WithName("providers").WithName("RFC2136").
-				WithValues("dnsprovider", fmt.Sprintf("%s/%s", resource.Namespace, resource.Name)),
-		}
-		return &rfc2136, nil
-
+		return provider, nil
 	})
 }
