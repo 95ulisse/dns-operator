@@ -10,15 +10,15 @@ else
 GOBIN=$(shell go env GOBIN)
 endif
 
-all: manager
+all: dns-operator
 
 # Run tests
 test: generate fmt vet manifests
 	go test ./... -coverprofile cover.out
 
-# Build manager binary
-manager: generate fmt vet
-	go build -o bin/manager main.go
+# Build dns-operator binary
+dns-operator: generate fmt vet
+	go build -o bin/dns-operator main.go
 
 # Run against the configured Kubernetes cluster in ~/.kube/config
 run: generate fmt vet manifests
