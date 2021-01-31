@@ -91,9 +91,43 @@ spec:
             required:
             - zones
             type: object
+          status:
+            description: DNSProviderStatus defines the observed state of DNSProvider
+            properties:
+              conditions:
+                items:
+                  description: Condition represents the state of a resource at a certain
+                    point in time. Examples of conditions are `Ready` or `Succeeded`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      description: 'ConditionStatus represents the possible values
+                        of a condition: True, False or Unknown.'
+                      type: string
+                    type:
+                      description: ConditionType enumerates the possible values of
+                        the field `Type` of a condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
         type: object
     served: true
     storage: true
+    subresources:
+      status: {}
 status:
   acceptedNames:
     kind: ""

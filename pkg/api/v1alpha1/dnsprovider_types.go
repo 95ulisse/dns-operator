@@ -67,14 +67,21 @@ type DNSProviderRFC2136 struct {
 	TSIGAlgorithm *string `json:"tsigAlgorithm,omitempty"`
 }
 
+// DNSProviderStatus defines the observed state of DNSProvider
+type DNSProviderStatus struct {
+	StatusWithConditions `json:",inline"`
+}
+
 // +kubebuilder:object:root=true
+// +kubebuilder:subresource:status
 
 // DNSProvider is the Schema for the dnsproviders API
 type DNSProvider struct {
 	metav1.TypeMeta   `json:",inline"`
 	metav1.ObjectMeta `json:"metadata,omitempty"`
 
-	Spec DNSProviderSpec `json:"spec,omitempty"`
+	Spec   DNSProviderSpec   `json:"spec,omitempty"`
+	Status DNSProviderStatus `json:"status,omitempty"`
 }
 
 // +kubebuilder:object:root=true

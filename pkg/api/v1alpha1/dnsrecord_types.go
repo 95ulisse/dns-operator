@@ -97,6 +97,7 @@ type MXRecordContent struct {
 
 // DNSRecordStatus defines the observed state of DNSRecord
 type DNSRecordStatus struct {
+	StatusWithConditions `json:",inline"`
 }
 
 // +kubebuilder:object:root=true

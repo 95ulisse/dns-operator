@@ -27,6 +27,7 @@ import (
 	ctrl "sigs.k8s.io/controller-runtime"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 	"sigs.k8s.io/controller-runtime/pkg/handler"
+	"sigs.k8s.io/controller-runtime/pkg/predicate"
 	"sigs.k8s.io/controller-runtime/pkg/source"
 
 	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
@@ -69,6 +70,18 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 			log.Error(err, "Unable to fetch DNSRecord")
 		}
 		return ctrl.Result{}, client.IgnoreNotFound(err)
+	}
+
+	// Mark the record as not ready
+	record.Status.SetCondition(&dnsv1alpha1.Condition{
+		Type:    dnsv1alpha1.ReadyCondition,
+		Status:  dnsv1alpha1.FalseStatus,
+		Reason:  "NotReady",
+		Message: "",
+	})
+	if err := r.Status().Update(ctx, &record); err != nil {
+		log.Error(err, "Cannot update resource status")
+		return ctrl.Result{}, err
 	}
 
 	// Extract the RR from the record
@@ -161,6 +174,18 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	// Let the magic happen
 	if err := provider.UpdateRecord(zone, rr); err != nil {
 		log.Error(err, "Cannot update update DNS record")
+		return ctrl.Result{}, err
+	}
+
+	// Mark the record as ready
+	record.Status.SetCondition(&dnsv1alpha1.Condition{
+		Type:    dnsv1alpha1.ReadyCondition,
+		Status:  dnsv1alpha1.TrueStatus,
+		Reason:  "Ready",
+		Message: "DNS record registered",
+	})
+	if err := r.Status().Update(ctx, &record); err != nil {
+		log.Error(err, "Cannot update resource status")
 		return ctrl.Result{}, err
 	}
 
@@ -273,5 +298,6 @@ func (r *DNSRecordReconciler) SetupWithManager(mgr ctrl.Manager) error {
 				ToRequests: handler.ToRequestsFunc(r.listRecordsUsingProvider),
 			},
 		).
+		WithEventFilter(predicate.GenerationChangedPredicate{}).
 		Complete(r)
 }
