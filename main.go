@@ -70,9 +70,10 @@ func main() {
 
 	// Prepare a shared context for the controllers
 	ctx := &types.ControllerContext{
-		RootContext: context.Background(),
-		Client:      mgr.GetClient(),
-		Log:         ctrl.Log,
+		RootContext:   context.Background(),
+		Client:        mgr.GetClient(),
+		Log:           ctrl.Log,
+		EventRecorder: mgr.GetEventRecorderFor("dns.k8s.marcocameriero.net"),
 	}
 
 	// Register the controllers with the manager

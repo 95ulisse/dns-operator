@@ -5,14 +5,16 @@ import (
 	"sync"
 
 	"github.com/go-logr/logr"
+	"k8s.io/client-go/tools/record"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 )
 
 // ControllerContext contains structures shared with all the controllers of the application.
 type ControllerContext struct {
-	RootContext context.Context
-	Client      client.Client
-	Log         logr.Logger
+	RootContext   context.Context
+	Client        client.Client
+	Log           logr.Logger
+	EventRecorder record.EventRecorder
 
 	providers     map[string]Provider
 	providersLock sync.RWMutex

@@ -191,6 +191,8 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 	log.Info("Successfully updated record")
 
+	r.Context.EventRecorder.Event(&record, "Normal", "Registered", "DNS record correclty registered")
+
 	return ctrl.Result{}, nil
 }
 
