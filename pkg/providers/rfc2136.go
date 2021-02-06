@@ -65,14 +65,14 @@ func (provider *RFC2136) Zones() []dnsname.Name {
 	return provider.zones
 }
 
-// UpdateRecord updates a record on the backend server.
-func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rr dns.RR) error {
+// UpdateRecord updates a record set on the backend server.
+func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
 
 	// Prepare the DNS message
 	msg := new(dns.Msg)
 	msg.SetUpdate(zone.ToFQDN().String())
-	msg.RemoveRRset([]dns.RR{rr})
-	msg.Insert([]dns.RR{rr})
+	msg.RemoveRRset(rrset)
+	msg.Insert(rrset)
 	if provider.useTsig {
 		msg.SetTsig(provider.keyName, provider.algorithm, 300, time.Now().Unix())
 	}
@@ -86,18 +86,20 @@ func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rr dns.RR) error {
 		return fmt.Errorf("DNS update failed. Server replied: %s", dns.RcodeToString[res.Rcode])
 	}
 
-	provider.log.Info(fmt.Sprintf("Updated %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
+	for _, rr := range rrset {
+		provider.log.Info(fmt.Sprintf("Updated %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
+	}
 
 	return nil
 }
 
 // DeleteRecord deletes a record from the backend server.
-func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rr dns.RR) error {
+func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
 
 	// Prepare the DNS message
 	msg := new(dns.Msg)
 	msg.SetUpdate(zone.ToFQDN().String())
-	msg.RemoveRRset([]dns.RR{rr})
+	msg.RemoveRRset(rrset)
 	if provider.useTsig {
 		msg.SetTsig(provider.keyName, provider.algorithm, 300, time.Now().Unix())
 	}
@@ -111,7 +113,9 @@ func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rr dns.RR) error {
 		return fmt.Errorf("DNS delete failed. Server replied: %s", dns.RcodeToString[res.Rcode])
 	}
 
-	provider.log.Info(fmt.Sprintf("Deleted %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
+	for _, rr := range rrset {
+		provider.log.Info(fmt.Sprintf("Deleted %s %s", dns.TypeToString[rr.Header().Rrtype], rr.Header().Name))
+	}
 
 	return nil
 }

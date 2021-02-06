@@ -29,13 +29,13 @@ func (dummy *Dummy) Zones() []dnsname.Name {
 }
 
 // UpdateRecord dummy noop.
-func (dummy *Dummy) UpdateRecord(zone dnsname.Name, record dns.RR) error {
-	dummy.log.Info("Updating ")
+func (dummy *Dummy) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
+	dummy.log.Info("Updating record")
 	return nil
 }
 
 // DeleteRecord dummy noop.
-func (dummy *Dummy) DeleteRecord(zone dnsname.Name, record dns.RR) error {
+func (dummy *Dummy) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
 	dummy.log.Info("Delete successful")
 	return nil
 }

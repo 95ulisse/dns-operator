@@ -34,9 +34,9 @@ type DNSRecordSpec struct {
 	// This field is required.
 	Name dnsname.Name `json:"name"`
 
-	// Content of the DNS record. The meaning of the content field depends on the type of record.
+	// RData of the DNS record. The meaning of the rdata field depends on the type of record.
 	// This field is required.
-	Content DNSRecordContent `json:"content"`
+	RData DNSRecordData `json:"rdata"`
 
 	// TTL in seconds of the DNS record. Defaults to 1h.
 	// +kubebuilder:validation:Minimum=1
@@ -52,43 +52,45 @@ type DNSRecordSpec struct {
 	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }
 
-// DNSRecordContent represents the actual contents of a DNS record.
+// DNSRecordData represents the actual contents of a DNS record.
 // Only one of these can be set.
-type DNSRecordContent struct {
+type DNSRecordData struct {
 	// A record.
-	// +kubebuilder:validation:Format=ipv4
+	// +kubebuilder:validation:MinItems=1
 	// +optional
-	A *string `json:"a,omitempty"`
+	A []Ipv4String `json:"a,omitempty"`
 
 	// AAAA record.
-	// +kubebuilder:validation:Format=ipv6
+	// +kubebuilder:validation:MinItems=1
 	// +optional
-	AAAA *string `json:"aaaa,omitempty"`
+	AAAA []Ipv6String `json:"aaaa,omitempty"`
 
 	// CNAME record.
-	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MinItems=1
+	// +kubebuilder:validation:MaxItems=1
 	// +optional
-	CNAME *string `json:"cname,omitempty"`
+	CNAME []NonEmptyString `json:"cname,omitempty"`
 
 	// TXT record.
+	// +kubebuilder:validation:MinItems=1
 	// +optional
-	TXT *string `json:"txt,omitempty"`
+	TXT []string `json:"txt,omitempty"`
 
 	// NS record.
-	// +kubebuilder:validation:MinLength=0
+	// +kubebuilder:validation:MinItems=1
 	// +optional
-	NS *string `json:"ns,omitempty"`
+	NS []NonEmptyString `json:"ns,omitempty"`
 
 	// MX record.
+	// +kubebuilder:validation:MinItems=1
 	// +optional
-	MX *MXRecordContent `json:"mx,omitempty"`
+	MX []MXRecordContent `json:"mx,omitempty"`
 }
 
 // MXRecordContent represents the contents of an MX DNS record.
 type MXRecordContent struct {
 	// Name pointed by the MX record.
-	// +kubebuilder:validation:MinLength=0
-	Name string `json:"name"`
+	Name NonEmptyString `json:"name"`
 
 	// Priority of the MX record.
 	// +kubebuilder:validation:Minimum=0
@@ -114,8 +116,8 @@ type DNSRecord struct {
 	Status DNSRecordStatus `json:"status,omitempty"`
 }
 
-// ToRR builds a new dns.RR equivalent to the Spec of this DNSRecord resource.
-func (record *DNSRecord) ToRR() (dns.RR, error) {
+// ToRRSet builds a new dns.RR slice equivalent to the Spec of this DNSRecord resource.
+func (record *DNSRecord) ToRRSet() ([]dns.RR, error) {
 
 	// Prepare a common header
 	header := dns.RR_Header{
@@ -128,21 +130,25 @@ func (record *DNSRecord) ToRR() (dns.RR, error) {
 	}
 
 	// A record
-	if record.Spec.Content.A != nil {
-		ip := net.ParseIP(*record.Spec.Content.A)
-		if ip == nil {
-			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
-		}
-		ip = ip.To4()
-		if ip == nil {
-			return nil, fmt.Errorf("Invalid IPv4 address %s", *record.Spec.Content.A)
-		}
+	if record.Spec.RData.A != nil {
+		result := make([]dns.RR, 0, 1)
+		for _, ipstr := range record.Spec.RData.A {
+			ip := net.ParseIP(string(ipstr))
+			if ip == nil {
+				return nil, fmt.Errorf("Invalid IPv4 address %s", ipstr)
+			}
+			ip = ip.To4()
+			if ip == nil {
+				return nil, fmt.Errorf("Invalid IPv4 address %s", ipstr)
+			}
 
-		rr := new(dns.A)
-		rr.Hdr = header
-		rr.Hdr.Rrtype = dns.TypeA
-		rr.A = ip
-		return rr, nil
+			rr := new(dns.A)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeA
+			rr.A = ip
+			result = append(result, rr)
+		}
+		return result, nil
 	}
 
 	return nil, fmt.Errorf("Unsupported DNS record")

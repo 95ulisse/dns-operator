@@ -43,46 +43,6 @@ spec:
           spec:
             description: DNSRecordSpec defines the desired state of DNSRecord
             properties:
-              content:
-                description: Content of the DNS record. The meaning of the content
-                  field depends on the type of record. This field is required.
-                properties:
-                  a:
-                    description: A record.
-                    format: ipv4
-                    type: string
-                  aaaa:
-                    description: AAAA record.
-                    format: ipv6
-                    type: string
-                  cname:
-                    description: CNAME record.
-                    minLength: 0
-                    type: string
-                  mx:
-                    description: MX record.
-                    properties:
-                      name:
-                        description: Name pointed by the MX record.
-                        minLength: 0
-                        type: string
-                      priority:
-                        description: Priority of the MX record.
-                        format: int64
-                        minimum: 0
-                        type: integer
-                    required:
-                    - name
-                    - priority
-                    type: object
-                  ns:
-                    description: NS record.
-                    minLength: 0
-                    type: string
-                  txt:
-                    description: TXT record.
-                    type: string
-                type: object
               deletionPolicy:
                 description: 'Specifies how to treat deletion of this DNSRecord. Valid
                   values are: - "Delete" (default): actually delete the corresponding
@@ -107,6 +67,73 @@ spec:
                 required:
                 - name
                 type: object
+              rdata:
+                description: RData of the DNS record. The meaning of the rdata field
+                  depends on the type of record. This field is required.
+                properties:
+                  a:
+                    description: A record.
+                    items:
+                      description: Ipv4String is a string containing an IPv4 address.
+                      format: ipv4
+                      type: string
+                    minItems: 1
+                    type: array
+                  aaaa:
+                    description: AAAA record.
+                    items:
+                      description: Ipv6String is a string containing an IPv6 address.
+                      format: ipv6
+                      type: string
+                    minItems: 1
+                    type: array
+                  cname:
+                    description: CNAME record.
+                    items:
+                      description: NonEmptyString is string with validation constraints
+                        disabling empty values.
+                      minLength: 1
+                      type: string
+                    maxItems: 1
+                    minItems: 1
+                    type: array
+                  mx:
+                    description: MX record.
+                    items:
+                      description: MXRecordContent represents the contents of an MX
+                        DNS record.
+                      properties:
+                        name:
+                          description: Name pointed by the MX record.
+                          minLength: 1
+                          type: string
+                        priority:
+                          description: Priority of the MX record.
+                          format: int64
+                          minimum: 0
+                          type: integer
+                      required:
+                      - name
+                      - priority
+                      type: object
+                    minItems: 1
+                    type: array
+                  ns:
+                    description: NS record.
+                    items:
+                      description: NonEmptyString is string with validation constraints
+                        disabling empty values.
+                      minLength: 1
+                      type: string
+                    minItems: 1
+                    type: array
+                  txt:
+                    description: TXT record.
+                    items:
+                      type: string
+                    minItems: 1
+                    type: array
+                type: object
               ttlSeconds:
                 description: TTL in seconds of the DNS record. Defaults to 1h.
                 format: int32
@@ -114,9 +141,9 @@ spec:
                 minimum: 1
                 type: integer
             required:
-            - content
             - name
             - providerRef
+            - rdata
             type: object
           status:
             description: DNSRecordStatus defines the observed state of DNSRecord

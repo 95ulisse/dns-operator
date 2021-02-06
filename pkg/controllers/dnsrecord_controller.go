@@ -84,8 +84,8 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 		return ctrl.Result{}, err
 	}
 
-	// Extract the RR from the record
-	rr, err := record.ToRR()
+	// Extract the RRSet from the record
+	rrset, err := record.ToRRSet()
 	if err != nil {
 		return ctrl.Result{}, err
 	}
@@ -142,7 +142,7 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 
 				log.V(1).Info("Deleting record")
 
-				if err := provider.DeleteRecord(zone, rr); err != nil {
+				if err := provider.DeleteRecord(zone, rrset); err != nil {
 					log.Error(err, "Cannot delete DNSRecord")
 					return ctrl.Result{}, err
 				}
@@ -172,7 +172,7 @@ func (r *DNSRecordReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {
 	}
 
 	// Let the magic happen
-	if err := provider.UpdateRecord(zone, rr); err != nil {
+	if err := provider.UpdateRecord(zone, rrset); err != nil {
 		log.Error(err, "Cannot update update DNS record")
 		return ctrl.Result{}, err
 	}
