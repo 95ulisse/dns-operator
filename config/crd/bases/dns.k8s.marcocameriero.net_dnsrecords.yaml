@@ -90,46 +90,31 @@ spec:
                   cname:
                     description: CNAME record.
                     items:
-                      description: NonEmptyString is string with validation constraints
-                        disabling empty values.
-                      minLength: 1
+                      description: Name represents a valid DNS resource name.
                       type: string
-                    maxItems: 1
                     minItems: 1
                     type: array
                   mx:
                     description: MX record.
                     items:
-                      description: MXRecordContent represents the contents of an MX
-                        DNS record.
+                      description: MXRData represents the contents of an MX DNS record.
                       properties:
-                        name:
-                          description: Name pointed by the MX record.
-                          minLength: 1
+                        mx:
+                          description: Name represents a valid DNS resource name.
                           type: string
-                        priority:
-                          description: Priority of the MX record.
-                          format: int64
-                          minimum: 0
+                        preference:
                           type: integer
                       required:
-                      - name
-                      - priority
+                      - mx
+                      - preference
                       type: object
-                    minItems: 1
-                    type: array
-                  ns:
-                    description: NS record.
-                    items:
-                      description: NonEmptyString is string with validation constraints
-                        disabling empty values.
-                      minLength: 1
-                      type: string
                     minItems: 1
                     type: array
                   txt:
                     description: TXT record.
                     items:
+                      description: TxtString is a string used as contents of a TXT
+                        record.
                       type: string
                     minItems: 1
                     type: array
