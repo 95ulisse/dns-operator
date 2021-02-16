@@ -1,16 +1,19 @@
 apiVersion: dns.k8s.marcocameriero.net/v1alpha1
 kind: DNSProvider
 metadata:
-  name: main-provider
+  name: cf-provider
   namespace: dns-operator
 spec:
   zones:
     - example.com
-  rfc2136:
-    nameserver: powerdns-server.default.svc.cluster.local:5301
-    tsigAlgorithm: HMACSHA512
-    tsigKeyName: dns-operator
-    tsigSecretRef:
-      key: key
-      name: main-provider-tsig-secret
-
+  # rfc2136:
+  #   nameserver: powerdns-server.default.svc.cluster.local:5301
+  #   tsigAlgorithm: HMACSHA512
+  #   tsigKeyName: dns-operator
+  #   tsigSecretRef:
+  #     key: key
+  #     name: main-provider-tsig-secret
+  cloudflare:
+    apiTokenSecretRef:
+      name: cf-provider-api-token
+      key: token
