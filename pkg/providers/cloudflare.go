@@ -7,10 +7,10 @@ import (
 
 	cloudflare "github.com/cloudflare/cloudflare-go"
 	"github.com/go-logr/logr"
-	"github.com/miekg/dns"
 	corev1 "k8s.io/api/core/v1"
 	k8stypes "k8s.io/apimachinery/pkg/types"
 
+	"github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
 	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
 	"github.com/95ulisse/dns-operator/pkg/dnsname"
 	"github.com/95ulisse/dns-operator/pkg/types"
@@ -41,7 +41,7 @@ func (cf *Cloudflare) Zones() []dnsname.Name {
 }
 
 // UpdateRecord reconciles the given RRset with the records registered on Cloudflare.
-func (cf *Cloudflare) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
+func (cf *Cloudflare) UpdateRecord(zone dnsname.Name, resource v1alpha1.DNSRecord) error {
 
 	// Retrieve the list of records of the RRset already registered on Cloudflare
 	zoneID, err := cf.zoneIDFromName(zone)
@@ -49,27 +49,85 @@ func (cf *Cloudflare) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
 		return err
 	}
 	filter := cloudflare.DNSRecord{
-		Type: dns.TypeToString[rrset[0].Header().Rrtype],
-		Name: unFqdn(rrset[0].Header().Name),
+		Type: resource.RType(),
+		Name: resource.Spec.Name.String(),
 	}
-	cf.log.V(1).Info("CF filter", "filter", filter)
 	recordsAlreadyPresent, err := cf.cf.DNSRecords(zoneID, filter)
 	if err != nil {
 		return err
 	}
 
 	// Perform a diff between the wanted and the present records
-	cf.log.V(1).Info(fmt.Sprintf("String of RRset: %s", rrset[0].String()))
+	var toCreate []cloudflare.DNSRecord
+	var toRemove []string
+	toCreate, err = toCFRecords(&resource)
+	if err != nil {
+		return err
+	}
 	for _, rrAlreadyPresent := range recordsAlreadyPresent {
-		cf.log.V(1).Info("Record on CF", "record", rrAlreadyPresent)
+
+		// If this record already present on CF is wanted by the user keep it, otherwise delete it
+		found := -1
+		for i, wanted := range toCreate {
+			if rrEquals(&wanted, &rrAlreadyPresent) {
+				found = i
+				break
+			}
+		}
+
+		if found >= 0 {
+			toCreate = removeRR(toCreate, found)
+		} else {
+			toRemove = append(toRemove, rrAlreadyPresent.ID)
+		}
+
+	}
+
+	// Synchronize the diff with cloudflare
+	for _, id := range toRemove {
+		cf.log.V(1).Info("Deleting old DNS record", "id", id)
+		err := cf.cf.DeleteDNSRecord(zoneID, id)
+		if err != nil {
+			return err
+		}
+	}
+	for _, rr := range toCreate {
+		cf.log.V(1).Info("Creating new DNS record", "record", rr)
+		_, err := cf.cf.CreateDNSRecord(zoneID, rr)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
 // DeleteRecord deletes the given RRset from Cloudflare.
-func (cf *Cloudflare) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
-	cf.log.Info("Delete successful")
+func (cf *Cloudflare) DeleteRecord(zone dnsname.Name, resource v1alpha1.DNSRecord) error {
+
+	// Retrieve the list of records of the RRset already registered on Cloudflare
+	zoneID, err := cf.zoneIDFromName(zone)
+	if err != nil {
+		return err
+	}
+	filter := cloudflare.DNSRecord{
+		Type: resource.RType(),
+		Name: resource.Spec.Name.String(),
+	}
+	recordsAlreadyPresent, err := cf.cf.DNSRecords(zoneID, filter)
+	if err != nil {
+		return err
+	}
+
+	// Delete all the records
+	for _, rr := range recordsAlreadyPresent {
+		cf.log.V(1).Info("Deleting old DNS record", "id", rr.ID)
+		err := cf.cf.DeleteDNSRecord(zoneID, rr.ID)
+		if err != nil {
+			return err
+		}
+	}
+
 	return nil
 }
 
@@ -104,11 +162,73 @@ func (cf *Cloudflare) zoneIDFromName(zone dnsname.Name) (string, error) {
 
 }
 
-func unFqdn(name string) string {
-	if dns.IsFqdn(name) {
-		return name[0 : len(name)-1]
+// toCFRecords converts a DNSRecord resource (which represent a whole rrset) to a slice of Cloudflare records.
+func toCFRecords(resource *v1alpha1.DNSRecord) ([]cloudflare.DNSRecord, error) {
+
+	var ttl = 1
+	if resource.Spec.TTLSeconds != nil {
+		ttl = int(*resource.Spec.TTLSeconds)
 	}
-	return name
+
+	rrset := make([]cloudflare.DNSRecord, 0, 1)
+	push := func(content string, priority int) {
+		var rr cloudflare.DNSRecord
+		rr.Type = resource.RType()
+		rr.Name = resource.Spec.Name.String()
+		rr.Content = content
+		rr.TTL = ttl
+		rr.Priority = priority
+		rrset = append(rrset, rr)
+	}
+
+	switch resource.RType() {
+	case "A":
+		for _, value := range resource.Spec.RRSet.A {
+			push(value.String(), 0)
+		}
+
+	case "AAAA":
+		for _, value := range resource.Spec.RRSet.AAAA {
+			push(value.String(), 0)
+		}
+
+	case "CNAME":
+		for _, value := range resource.Spec.RRSet.CNAME {
+			push(value.String(), 0)
+		}
+
+	case "TXT":
+		for _, value := range resource.Spec.RRSet.TXT {
+			push(value, 0)
+		}
+
+	case "MX":
+		for _, mx := range resource.Spec.RRSet.MX {
+			push(mx.Host.String(), int(mx.Preference))
+		}
+
+	default:
+		return nil, fmt.Errorf("Unsupported DNS record")
+	}
+
+	return rrset, nil
+}
+
+func rrEquals(rr1 *cloudflare.DNSRecord, rr2 *cloudflare.DNSRecord) bool {
+	return rr1.Type == rr2.Type &&
+		rr1.Name == rr2.Name &&
+		rr1.Content == rr2.Content &&
+		rr1.Proxied == rr2.Proxied &&
+		rr1.TTL == rr2.TTL &&
+		rr1.Priority == rr2.Priority
+}
+
+// removeRR will remove the item with index `i` from the given slice.
+// NOTE: this function does not preserve the order of the original slice.
+func removeRR(s []cloudflare.DNSRecord, i int) []cloudflare.DNSRecord {
+	s[i] = s[len(s)-1]
+	// We do not need to put s[i] at the end, as it will be discarded anyway
+	return s[:len(s)-1]
 }
 
 func init() {

@@ -8,9 +8,17 @@ import (
 // +kubebuilder:validation:Format=ipv4
 type Ipv4String string
 
+func (str *Ipv4String) String() string {
+	return string(*str)
+}
+
 // Ipv6String is a string containing an IPv6 address.
 // +kubebuilder:validation:Format=ipv6
 type Ipv6String string
+
+func (str *Ipv6String) String() string {
+	return string(*str)
+}
 
 // DeletionPolicy describes how the DNSRecord resource deletion will propagate to the underlying actual DNS record.
 // Only one of the following concurrent policies may be specified.

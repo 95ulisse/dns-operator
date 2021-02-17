@@ -102,6 +102,22 @@ type DNSRecord struct {
 	Status DNSRecordStatus `json:"status,omitempty"`
 }
 
+// RType returns the type of DNS record that this resource represents.
+func (resource *DNSRecord) RType() string {
+	if resource.Spec.RRSet.A != nil {
+		return "A"
+	} else if resource.Spec.RRSet.AAAA != nil {
+		return "AAAA"
+	} else if resource.Spec.RRSet.MX != nil {
+		return "MX"
+	} else if resource.Spec.RRSet.CNAME != nil {
+		return "CNAME"
+	} else if resource.Spec.RRSet.TXT != nil {
+		return "TXT"
+	}
+	return ""
+}
+
 // +kubebuilder:object:root=true
 
 // DNSRecordList contains a list of DNSRecord

@@ -145,10 +145,12 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 	}
 
 	spec := &resource.Spec.RRSet
+	rrset := make([]dns.RR, 0, 1)
+
+	switch resource.RType() {
 
 	// A record
-	if spec.A != nil {
-		rrset := make([]dns.RR, 0, 1)
+	case "A":
 		for _, value := range spec.A {
 			rr := new(dns.A)
 			rr.Hdr = header
@@ -159,12 +161,9 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 
 			rrset = append(rrset, rr)
 		}
-		return rrset, nil
-	}
 
 	// AAAA record
-	if spec.AAAA != nil {
-		rrset := make([]dns.RR, 0, 1)
+	case "AAAA":
 		for _, value := range spec.AAAA {
 			rr := new(dns.AAAA)
 			rr.Hdr = header
@@ -175,12 +174,9 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 
 			rrset = append(rrset, rr)
 		}
-		return rrset, nil
-	}
 
 	// MX record
-	if spec.MX != nil {
-		rrset := make([]dns.RR, 0, 1)
+	case "MX":
 		for _, value := range spec.MX {
 			rr := new(dns.MX)
 			rr.Hdr = header
@@ -192,12 +188,9 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 
 			rrset = append(rrset, rr)
 		}
-		return rrset, nil
-	}
 
 	// CNAME record
-	if spec.CNAME != nil {
-		rrset := make([]dns.RR, 0, 1)
+	case "CNAME":
 		for _, value := range spec.CNAME {
 			rr := new(dns.CNAME)
 			rr.Hdr = header
@@ -208,12 +201,9 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 
 			rrset = append(rrset, rr)
 		}
-		return rrset, nil
-	}
 
 	// TXT record
-	if spec.TXT != nil {
-		rrset := make([]dns.RR, 0, 1)
+	case "TXT":
 		for _, value := range spec.TXT {
 			rr := new(dns.TXT)
 			rr.Hdr = header
@@ -224,10 +214,13 @@ func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
 
 			rrset = append(rrset, rr)
 		}
-		return rrset, nil
+
+	default:
+		return nil, fmt.Errorf("Unsupported DNS record")
+
 	}
 
-	return nil, fmt.Errorf("Unsupported DNS record")
+	return rrset, nil
 }
 
 func a(source *v1alpha1.Ipv4String, target *net.IP) error {
