@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -13,7 +14,7 @@ import (
 	k8stypes "k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
-	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
+	v1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
 	"github.com/95ulisse/dns-operator/pkg/dnsname"
 	"github.com/95ulisse/dns-operator/pkg/types"
 )
@@ -66,7 +67,12 @@ func (provider *RFC2136) Zones() []dnsname.Name {
 }
 
 // UpdateRecord updates a record set on the backend server.
-func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
+func (provider *RFC2136) UpdateRecord(zone dnsname.Name, resource v1alpha1.DNSRecord) error {
+
+	rrset, err := toRRSet(&resource)
+	if err != nil {
+		return err
+	}
 
 	// Prepare the DNS message
 	msg := new(dns.Msg)
@@ -94,7 +100,12 @@ func (provider *RFC2136) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
 }
 
 // DeleteRecord deletes a record from the backend server.
-func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
+func (provider *RFC2136) DeleteRecord(zone dnsname.Name, resource v1alpha1.DNSRecord) error {
+
+	rrset, err := toRRSet(&resource)
+	if err != nil {
+		return err
+	}
 
 	// Prepare the DNS message
 	msg := new(dns.Msg)
@@ -120,7 +131,164 @@ func (provider *RFC2136) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
 	return nil
 }
 
-func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, k8sClient client.Client) (string, string, string, error) {
+func toRRSet(resource *v1alpha1.DNSRecord) ([]dns.RR, error) {
+
+	// Prepare a common header
+	var ttl uint32 = 3600
+	if resource.Spec.TTLSeconds != nil {
+		ttl = *resource.Spec.TTLSeconds
+	}
+	header := dns.RR_Header{
+		Name:  resource.Spec.Name.ToFQDN().String(),
+		Class: dns.ClassINET,
+		Ttl:   ttl,
+	}
+
+	spec := &resource.Spec.RRSet
+
+	// A record
+	if spec.A != nil {
+		rrset := make([]dns.RR, 0, 1)
+		for _, value := range spec.A {
+			rr := new(dns.A)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeA
+			if err := a(&value, &rr.A); err != nil {
+				return nil, err
+			}
+
+			rrset = append(rrset, rr)
+		}
+		return rrset, nil
+	}
+
+	// AAAA record
+	if spec.AAAA != nil {
+		rrset := make([]dns.RR, 0, 1)
+		for _, value := range spec.AAAA {
+			rr := new(dns.AAAA)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeAAAA
+			if err := aaaa(&value, &rr.AAAA); err != nil {
+				return nil, err
+			}
+
+			rrset = append(rrset, rr)
+		}
+		return rrset, nil
+	}
+
+	// MX record
+	if spec.MX != nil {
+		rrset := make([]dns.RR, 0, 1)
+		for _, value := range spec.MX {
+			rr := new(dns.MX)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeMX
+			rr.Preference = value.Preference
+			if err := name(&value.Host, &rr.Mx); err != nil {
+				return nil, err
+			}
+
+			rrset = append(rrset, rr)
+		}
+		return rrset, nil
+	}
+
+	// CNAME record
+	if spec.CNAME != nil {
+		rrset := make([]dns.RR, 0, 1)
+		for _, value := range spec.CNAME {
+			rr := new(dns.CNAME)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeCNAME
+			if err := name(&value, &rr.Target); err != nil {
+				return nil, err
+			}
+
+			rrset = append(rrset, rr)
+		}
+		return rrset, nil
+	}
+
+	// TXT record
+	if spec.TXT != nil {
+		rrset := make([]dns.RR, 0, 1)
+		for _, value := range spec.TXT {
+			rr := new(dns.TXT)
+			rr.Hdr = header
+			rr.Hdr.Rrtype = dns.TypeTXT
+			if err := txt(&value, &rr.Txt); err != nil {
+				return nil, err
+			}
+
+			rrset = append(rrset, rr)
+		}
+		return rrset, nil
+	}
+
+	return nil, fmt.Errorf("Unsupported DNS record")
+}
+
+func a(source *v1alpha1.Ipv4String, target *net.IP) error {
+	ip := net.ParseIP(string(*source))
+	if ip == nil {
+		return fmt.Errorf("Invalid IPv4 address %s", *source)
+	}
+	ip = ip.To4()
+	if ip == nil {
+		return fmt.Errorf("Invalid IPv4 address %s", *source)
+	}
+	*target = ip
+	return nil
+}
+
+func aaaa(source *v1alpha1.Ipv6String, target *net.IP) error {
+	ip := net.ParseIP(string(*source))
+	if ip == nil {
+		return fmt.Errorf("Invalid IPv6 address %s", *source)
+	}
+	ip = ip.To16()
+	if ip == nil {
+		return fmt.Errorf("Invalid IPv6 address %s", *source)
+	}
+	*target = ip
+	return nil
+}
+
+func name(source *dnsname.Name, target *string) error {
+	*target = source.String()
+	return nil
+}
+
+func txt(source *string, target *[]string) error {
+
+	// Split the source stirng in chunks of 255 bytes
+	chunkSize := 255
+	if chunkSize >= len(*source) {
+		*target = []string{string(*source)}
+		return nil
+	}
+	var chunks []string
+	chunk := make([]rune, chunkSize)
+	len := 0
+	for _, r := range *source {
+		chunk[len] = r
+		len++
+		if len == chunkSize {
+			chunks = append(chunks, string(chunk))
+			len = 0
+		}
+	}
+	if len > 0 {
+		chunks = append(chunks, string(chunk[:len]))
+	}
+
+	*target = chunks
+	return nil
+}
+
+func extractTSIGKey(resource *v1alpha1.DNSProvider, k8sClient client.Client) (string, string, string, error) {
 
 	// Extract the required parameters
 	secretRef := resource.Spec.RFC2136.TSIGSecretRef
@@ -162,7 +330,7 @@ func extractTSIGKey(resource *dnsv1alpha1.DNSProvider, k8sClient client.Client) 
 }
 
 func init() {
-	RegisterProviderConstructor("rfc2136", func(ctx *types.ControllerContext, resource *dnsv1alpha1.DNSProvider) (types.Provider, error) {
+	RegisterProviderConstructor("rfc2136", func(ctx *types.ControllerContext, resource *v1alpha1.DNSProvider) (types.Provider, error) {
 		provider := NewRFC2136(ctx.Log, resource.Spec.Zones, resource.Spec.RFC2136.Nameserver)
 		if resource.Spec.RFC2136.TSIGSecretRef != nil {
 			keyName, secret, algorithm, err := extractTSIGKey(resource, ctx.Client)

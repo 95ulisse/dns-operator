@@ -67,9 +67,10 @@ spec:
                 required:
                 - name
                 type: object
-              rdata:
-                description: RData of the DNS record. The meaning of the rdata field
-                  depends on the type of record. This field is required.
+              rrset:
+                description: RRSet contains the actual contents of the DNS record.
+                  The meaning of the rdata field depends on the type of record. This
+                  field is required.
                 properties:
                   a:
                     description: A record.
@@ -99,13 +100,13 @@ spec:
                     items:
                       description: MXRData represents the contents of an MX DNS record.
                       properties:
-                        mx:
+                        host:
                           description: Name represents a valid DNS resource name.
                           type: string
                         preference:
                           type: integer
                       required:
-                      - mx
+                      - host
                       - preference
                       type: object
                     minItems: 1
@@ -113,8 +114,6 @@ spec:
                   txt:
                     description: TXT record.
                     items:
-                      description: TxtString is a string used as contents of a TXT
-                        record.
                       type: string
                     minItems: 1
                     type: array
@@ -128,7 +127,7 @@ spec:
             required:
             - name
             - providerRef
-            - rdata
+            - rrset
             type: object
           status:
             description: DNSRecordStatus defines the observed state of DNSRecord

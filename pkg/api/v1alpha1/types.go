@@ -4,6 +4,14 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
+// Ipv4String is a string containing an IPv4 address.
+// +kubebuilder:validation:Format=ipv4
+type Ipv4String string
+
+// Ipv6String is a string containing an IPv6 address.
+// +kubebuilder:validation:Format=ipv6
+type Ipv6String string
+
 // DeletionPolicy describes how the DNSRecord resource deletion will propagate to the underlying actual DNS record.
 // Only one of the following concurrent policies may be specified.
 // If none of the following policies is specified, the default one

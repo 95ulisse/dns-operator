@@ -2,9 +2,8 @@ package providers
 
 import (
 	"github.com/go-logr/logr"
-	"github.com/miekg/dns"
 
-	dnsv1alpha1 "github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
+	"github.com/95ulisse/dns-operator/pkg/api/v1alpha1"
 	"github.com/95ulisse/dns-operator/pkg/dnsname"
 	"github.com/95ulisse/dns-operator/pkg/types"
 )
@@ -29,19 +28,19 @@ func (dummy *Dummy) Zones() []dnsname.Name {
 }
 
 // UpdateRecord dummy noop.
-func (dummy *Dummy) UpdateRecord(zone dnsname.Name, rrset []dns.RR) error {
+func (dummy *Dummy) UpdateRecord(zone dnsname.Name, rrset v1alpha1.DNSRecord) error {
 	dummy.log.Info("Updating record")
 	return nil
 }
 
 // DeleteRecord dummy noop.
-func (dummy *Dummy) DeleteRecord(zone dnsname.Name, rrset []dns.RR) error {
+func (dummy *Dummy) DeleteRecord(zone dnsname.Name, rrset v1alpha1.DNSRecord) error {
 	dummy.log.Info("Delete successful")
 	return nil
 }
 
 func init() {
-	RegisterProviderConstructor("dummy", func(ctx *types.ControllerContext, resource *dnsv1alpha1.DNSProvider) (types.Provider, error) {
+	RegisterProviderConstructor("dummy", func(ctx *types.ControllerContext, resource *v1alpha1.DNSProvider) (types.Provider, error) {
 		return NewDummy(ctx.Log, resource.Spec.Zones), nil
 	})
 }

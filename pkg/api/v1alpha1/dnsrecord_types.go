@@ -14,13 +14,10 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//go:generate go run generate_rdata_structs.go
-
 package v1alpha1
 
 import (
 	"github.com/95ulisse/dns-operator/pkg/dnsname"
-	"github.com/miekg/dns"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -33,9 +30,10 @@ type DNSRecordSpec struct {
 	// This field is required.
 	Name dnsname.Name `json:"name"`
 
-	// RData of the DNS record. The meaning of the rdata field depends on the type of record.
+	// RRSet contains the actual contents of the DNS record.
+	// The meaning of the rdata field depends on the type of record.
 	// This field is required.
-	RData DNSRecordData `json:"rdata"`
+	RRSet DNSRecordSetData `json:"rrset"`
 
 	// TTL in seconds of the DNS record. Defaults to 1h.
 	// +kubebuilder:validation:Minimum=1
@@ -49,6 +47,40 @@ type DNSRecordSpec struct {
 	// - "Retain": do not delete the actual DNS record managed by this resource.
 	// +optional
 	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
+}
+
+// DNSRecordSetData represents the actual contents of a DNS record. Only one of these can be set.
+type DNSRecordSetData struct {
+	// A record.
+	// +kubebuilder:validation:MinItems=1
+	// +optional
+	A []Ipv4String `json:"a,omitempty"`
+
+	// AAAA record.
+	// +kubebuilder:validation:MinItems=1
+	// +optional
+	AAAA []Ipv6String `json:"aaaa,omitempty"`
+
+	// MX record.
+	// +kubebuilder:validation:MinItems=1
+	// +optional
+	MX []MXRData `json:"mx,omitempty"`
+
+	// CNAME record.
+	// +kubebuilder:validation:MinItems=1
+	// +optional
+	CNAME []dnsname.Name `json:"cname,omitempty"`
+
+	// TXT record.
+	// +kubebuilder:validation:MinItems=1
+	// +optional
+	TXT []string `json:"txt,omitempty"`
+}
+
+// MXRData represents the contents of an MX DNS record.
+type MXRData struct {
+	Preference uint16       `json:"preference"`
+	Host       dnsname.Name `json:"host"`
 }
 
 // DNSRecordStatus defines the observed state of DNSRecord
@@ -68,15 +100,6 @@ type DNSRecord struct {
 
 	Spec   DNSRecordSpec   `json:"spec,omitempty"`
 	Status DNSRecordStatus `json:"status,omitempty"`
-}
-
-// ToRRSet builds a new dns.RR slice equivalent to the Spec of this DNSRecord resource.
-func (record *DNSRecord) ToRRSet() ([]dns.RR, error) {
-	var ttl uint32 = 3600
-	if record.Spec.TTLSeconds != nil {
-		ttl = *record.Spec.TTLSeconds
-	}
-	return toRRSet(record.Spec.Name.ToFQDN().String(), ttl, &record.Spec.RData)
 }
 
 // +kubebuilder:object:root=true
