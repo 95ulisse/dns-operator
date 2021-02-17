@@ -37,6 +37,52 @@ spec:
             description: DNSProviderSpec defines the desired state of DNSProvider.
               Only one of the providers can be configured.
             properties:
+              cloudflare:
+                description: Use Cloudflare to manage records.
+                properties:
+                  apiKeySecretRef:
+                    description: Reference to a secret containing the API Key to use
+                      for authentication. One between `apiTokenSecretRef` and `apiKeySecretRef`
+                      must be present.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  apiTokenSecretRef:
+                    description: Reference to a secret containing the API Token to
+                      use for authentication. One between `apiTokenSecretRef` and
+                      `apiKeySecretRef` must be present.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  email:
+                    description: Email owner of the Cloudflare account, required only
+                      if using an API Key.
+                    format: email
+                    minLength: 1
+                    type: string
+                type: object
               dummy:
                 description: Dummy provider used for debugging.
                 type: boolean

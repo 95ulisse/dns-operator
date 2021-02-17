@@ -39,6 +39,10 @@ type DNSProviderSpec struct {
 	// Use RFC2136 ("Dynamic Updates in the Domain Name System") (https://datatracker.ietf.org/doc/rfc2136/) to manage records.
 	// +optional
 	RFC2136 *DNSProviderRFC2136 `json:"rfc2136,omitempty"`
+
+	// Use Cloudflare to manage records.
+	// +optional
+	Cloudflare *DNSProviderCloudflare `json:"cloudflare,omitempty"`
 }
 
 // DNSProviderRFC2136 is a structure containing the configuration for RFC2136 DNS provider.
@@ -65,6 +69,26 @@ type DNSProviderRFC2136 struct {
 	// ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.
 	// +optional
 	TSIGAlgorithm *string `json:"tsigAlgorithm,omitempty"`
+}
+
+// DNSProviderCloudflare is a structure containing the configuration of the Cloudflare provider.
+// The Cloudflare provider can be configured using either an API Token, or an API Key.
+type DNSProviderCloudflare struct {
+	// Email owner of the Cloudflare account, required only if using an API Key.
+	// +kubebuilder:validation:MinLength=1
+	// +kubebuilder:validation:Format=email
+	// +optional
+	Email *string `json:"email,omitempty"`
+
+	// Reference to a secret containing the API Token to use for authentication.
+	// One between `apiTokenSecretRef` and `apiKeySecretRef` must be present.
+	// +optional
+	APITokenSecretRef *SecretReference `json:"apiTokenSecretRef,omitempty"`
+
+	// Reference to a secret containing the API Key to use for authentication.
+	// One between `apiTokenSecretRef` and `apiKeySecretRef` must be present.
+	// +optional
+	APIKeySecretRef *SecretReference `json:"apiKeySecretRef,omitempty"`
 }
 
 // DNSProviderStatus defines the observed state of DNSProvider
@@ -99,6 +123,8 @@ func (resource *DNSProvider) GetProviderType() (string, error) {
 		return "dummy", nil
 	} else if resource.Spec.RFC2136 != nil {
 		return "rfc2136", nil
+	} else if resource.Spec.Cloudflare != nil {
+		return "cloudflare", nil
 	} else {
 		return "", fmt.Errorf("Unknown provider type")
 	}
