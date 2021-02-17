@@ -89,6 +89,11 @@ type DNSProviderCloudflare struct {
 	// One between `apiTokenSecretRef` and `apiKeySecretRef` must be present.
 	// +optional
 	APIKeySecretRef *SecretReference `json:"apiKeySecretRef,omitempty"`
+
+	// If true, marks all records as proxied by default.
+	// Defaults to true.
+	// +optional
+	ProxiedByDefault *bool `json:"proxiedByDefault,omitempty"`
 }
 
 // DNSProviderStatus defines the observed state of DNSProvider

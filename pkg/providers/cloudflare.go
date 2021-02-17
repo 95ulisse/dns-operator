@@ -3,6 +3,7 @@ package providers
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"sync"
 
 	cloudflare "github.com/cloudflare/cloudflare-go"
@@ -16,22 +17,28 @@ import (
 	"github.com/95ulisse/dns-operator/pkg/types"
 )
 
+const (
+	proxiedAnnotation string = "dns.k8s.marcocameriero.net/cloudflare-proxied"
+)
+
 // Cloudflare DNS provider.
 type Cloudflare struct {
 	log                logr.Logger
 	zones              []dnsname.Name
 	cf                 *cloudflare.API
+	proxiedByDefault   bool
 	cfZonesIDCache     map[string]string
 	cfZonesIDCacheLock sync.RWMutex
 }
 
 // NewCloudflare creates a new instance of the Cloudflare provider.
-func NewCloudflare(log logr.Logger, zones []dnsname.Name, cf *cloudflare.API) *Cloudflare {
+func NewCloudflare(log logr.Logger, zones []dnsname.Name, cf *cloudflare.API, proxiedByDefault bool) *Cloudflare {
 	return &Cloudflare{
-		log:            log.WithName("providers").WithName("Cloudflare"),
-		zones:          zones,
-		cf:             cf,
-		cfZonesIDCache: make(map[string]string),
+		log:              log.WithName("providers").WithName("Cloudflare"),
+		zones:            zones,
+		cf:               cf,
+		proxiedByDefault: proxiedByDefault,
+		cfZonesIDCache:   make(map[string]string),
 	}
 }
 
@@ -60,7 +67,7 @@ func (cf *Cloudflare) UpdateRecord(zone dnsname.Name, resource v1alpha1.DNSRecor
 	// Perform a diff between the wanted and the present records
 	var toCreate []cloudflare.DNSRecord
 	var toRemove []string
-	toCreate, err = toCFRecords(&resource)
+	toCreate, err = cf.toCFRecords(&resource)
 	if err != nil {
 		return err
 	}
@@ -163,11 +170,20 @@ func (cf *Cloudflare) zoneIDFromName(zone dnsname.Name) (string, error) {
 }
 
 // toCFRecords converts a DNSRecord resource (which represent a whole rrset) to a slice of Cloudflare records.
-func toCFRecords(resource *v1alpha1.DNSRecord) ([]cloudflare.DNSRecord, error) {
+func (cf *Cloudflare) toCFRecords(resource *v1alpha1.DNSRecord) ([]cloudflare.DNSRecord, error) {
 
+	// TTL
 	var ttl = 1
 	if resource.Spec.TTLSeconds != nil {
 		ttl = int(*resource.Spec.TTLSeconds)
+	}
+
+	// Proxied attribute can be overridden with an annotation
+	proxied := cf.proxiedByDefault
+	if proxiedOverride, ok := resource.ObjectMeta.Annotations[proxiedAnnotation]; ok {
+		if b, err := strconv.ParseBool(proxiedOverride); err == nil {
+			proxied = b
+		}
 	}
 
 	rrset := make([]cloudflare.DNSRecord, 0, 1)
@@ -178,6 +194,7 @@ func toCFRecords(resource *v1alpha1.DNSRecord) ([]cloudflare.DNSRecord, error) {
 		rr.Content = content
 		rr.TTL = ttl
 		rr.Priority = priority
+		rr.Proxied = proxied
 		rrset = append(rrset, rr)
 	}
 
@@ -278,6 +295,11 @@ func init() {
 			return nil, err
 		}
 
-		return NewCloudflare(ctx.Log, resource.Spec.Zones, cf), nil
+		var proxiedByDefault = true
+		if resource.Spec.Cloudflare.ProxiedByDefault != nil {
+			proxiedByDefault = *resource.Spec.Cloudflare.ProxiedByDefault
+		}
+
+		return NewCloudflare(ctx.Log, resource.Spec.Zones, cf, proxiedByDefault), nil
 	})
 }

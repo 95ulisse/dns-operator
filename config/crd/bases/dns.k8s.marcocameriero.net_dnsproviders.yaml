@@ -82,6 +82,10 @@ spec:
                     format: email
                     minLength: 1
                     type: string
+                  proxiedByDefault:
+                    description: If true, marks all records as proxied by default.
+                      Defaults to true.
+                    type: boolean
                 type: object
               dummy:
                 description: Dummy provider used for debugging.
