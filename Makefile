@@ -1,6 +1,5 @@
-
 # Image URL to use all building/pushing image targets
-IMG ?= controller:latest
+IMG ?= 95ulisse/dns-operator:latest
 CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
