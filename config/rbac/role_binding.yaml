@@ -1,12 +1,12 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: manager-rolebinding
+  name: dns-operator-rolebinding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: manager-role
+  name: dns-operator-role
 subjects:
 - kind: ServiceAccount
-  name: default
-  namespace: system
+  name: dns-operator
+  namespace: dns-operator

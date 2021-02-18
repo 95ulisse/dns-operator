@@ -39,6 +39,7 @@ type DNSProviderReconciler struct {
 
 // +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsproviders,verbs=get;list;watch
 // +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsproviders/status,verbs=get;update;patch
+// +kubebuilder:rbac:groups="",resources=secrets,verbs=get;list;watch
 
 // Reconcile performs an iteration of the reconcile loop for a DNSProvider.
 func (r *DNSProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error) {

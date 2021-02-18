@@ -1,5 +1,5 @@
-# Build the manager binary
-FROM golang:1.13 as builder
+# Build the operator binary
+FROM golang:1.13-alpine as builder
 
 WORKDIR /workspace
 # Copy the Go Modules manifests
@@ -11,17 +11,15 @@ RUN go mod download
 
 # Copy the go source
 COPY main.go main.go
-COPY api/ api/
-COPY controllers/ controllers/
+COPY pkg/ pkg/
 
 # Build
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o manager main.go
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 GO111MODULE=on go build -a -o dns-operator main.go
 
-# Use distroless as minimal base image to package the manager binary
-# Refer to https://github.com/GoogleContainerTools/distroless for more details
-FROM gcr.io/distroless/static:nonroot
+# Final image is based on Alpine
+FROM alpine:3
 WORKDIR /
-COPY --from=builder /workspace/manager .
-USER nonroot:nonroot
+COPY --from=builder /workspace/dns-operator .
+USER nobody:nobody
 
-ENTRYPOINT ["/manager"]
+ENTRYPOINT ["/dns-operator"]
