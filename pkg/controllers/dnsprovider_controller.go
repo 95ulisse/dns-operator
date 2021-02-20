@@ -79,6 +79,22 @@ func (r *DNSProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 	provider, err := providers.ProviderFor(r.Context, &resource)
 	if err != nil {
 		log.Error(err, "Cannot build provider")
+
+		// Mark the provider as non ready
+		resource.Status.SetCondition(&dnsv1alpha1.Condition{
+			Type:    dnsv1alpha1.ReadyCondition,
+			Status:  dnsv1alpha1.FalseStatus,
+			Reason:  "Error",
+			Message: err.Error(),
+		})
+		if err := r.Status().Update(ctx, &resource); err != nil {
+			log.Error(err, "Cannot update resource status")
+			return ctrl.Result{}, err
+		}
+
+		// Record an event
+		r.Context.EventRecorder.Event(&resource, "Warning", "Error", err.Error())
+
 		return ctrl.Result{}, err
 	}
 	r.Context.SetProvider(req.NamespacedName.String(), provider)
@@ -95,6 +111,9 @@ func (r *DNSProviderReconciler) Reconcile(req ctrl.Request) (ctrl.Result, error)
 		log.Error(err, "Cannot update resource status")
 		return ctrl.Result{}, err
 	}
+
+	// Record an event
+	r.Context.EventRecorder.Event(&resource, "Normal", "Ready", "Ready to register DNS records")
 
 	return ctrl.Result{}, nil
 }
