@@ -338,9 +338,52 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Quick Start
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Quick Start
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuring-your-first-provider" class="md-nav__link">
+    Configuring your first provider
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploying-your-records" class="md-nav__link">
+    Deploying your records
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-test-resources" class="md-nav__link">
+    Cleanup test resources
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -519,6 +562,35 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#configuring-your-first-provider" class="md-nav__link">
+    Configuring your first provider
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#deploying-your-records" class="md-nav__link">
+    Deploying your records
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#cleanup-test-resources" class="md-nav__link">
+    Cleanup test resources
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -531,7 +603,144 @@
                 
                 
                 <h1 id="quick-start">Quick Start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h1>
-<p>TODO</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This section assumes that you have already installed the operator as described in <a href="/getting-started/install">Install</a>.</p>
+</div>
+<h2 id="configuring-your-first-provider">Configuring your first provider<a class="headerlink" href="#configuring-your-first-provider" title="Permanent link">&para;</a></h2>
+<p>Let's start by creating a new namespace to hold our test resources.</p>
+<div class="highlight"><pre><span></span><code>kubectl create namespace dns-operator-test
+</code></pre></div>
+<p>The first step is to configure a new <code>DNSProvider</code>.
+As an example, we will configure a <code>DNSProvider</code> that uses <a href="https://www.cloudflare.com">Cloudflare</a> as the backing provider.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSProvider</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider</span> <span class="c1"># Name of the provider</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator-test</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">zones</span><span class="p">:</span> <span class="c1"># Zones that this provider will be responsible for</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">example.com</span>
+  <span class="nt">cloudflare</span><span class="p">:</span>
+    <span class="nt">apiTokenSecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-token</span> <span class="c1"># Secret containing the Cloudflare API Token</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">token</span>
+<span class="nn">---</span>
+<span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX</span> <span class="c1"># Your Cloudflare API Token</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-token</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator-test</span>
+</code></pre></div>
+<p>To check whether the provider we just deployed is ready to serve registration requests, check its <code>Ready</code> condition.
+When the provider is marked as <code>Ready</code>, all the checks passed, and we can start deploying the records.
+In case something is wrong in the configuration of the provider, an event will explain the details of the error.</p>
+<div class="highlight"><pre><span></span><code><span class="err">$ kubectl describe dnsprovider/cf-provider -n dns-operator-test</span>
+
+<span class="err">[...]</span>
+
+<span class="err">Name:         cf-provider</span>
+<span class="err">Namespace:    dns-operator-test</span>
+<span class="err">API Version:  dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="err">Kind:         DNSProvider</span>
+<span class="err">Spec:</span>
+<span class="err">  Cloudflare:</span>
+<span class="err">    API Token Secret Ref:</span>
+<span class="err">      Key:        token</span>
+<span class="err">      Name:       cf-provider-api-token</span>
+<span class="err">  Zones:</span>
+<span class="err">    example.com</span>
+<span class="err">Status:</span>
+<span class="err">  Conditions:</span>
+<span class="err">    Last Transition Time:  2021-02-20T17:13:18Z</span>
+<span class="err">    Last Update Time:      2021-02-20T17:13:18Z</span>
+<span class="err">    Message:               Ready to register DNS records</span>
+<span class="err">    Reason:                Ready</span>
+<span class="err">    Status:                True</span>
+<span class="err">    Type:                  Ready</span>
+<span class="err">Events:</span>
+<span class="err">  Type     Reason  Age   From                        Message</span>
+<span class="err">  ----     ------  ----  ----                        -------</span>
+<span class="err">  Normal   Ready   12s   dns.k8s.marcocameriero.net  Ready to register DNS records</span>
+</code></pre></div>
+<h2 id="deploying-your-records">Deploying your records<a class="headerlink" href="#deploying-your-records" title="Permanent link">&para;</a></h2>
+<p>Let's say we want to deploy a new <code>A</code> record for <code>foo.example.com</code>.
+Create and deploy the following <code>DNSRecord</code> to create a new <code>A</code> record for <code>foo.example.com</code>
+pointing to <code>1.1.1.1</code>.</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSRecord</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator-test</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">providerRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider</span> <span class="c1"># Use the Cloudflare provider we defined earlier</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.example.com</span>
+  <span class="nt">rrset</span><span class="p">:</span>
+    <span class="nt">a</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1.1.1.1</span>
+</code></pre></div>
+<p>To check whether the DNS record registration was successful or not, we can check the <code>Ready</code> condition of the <code>DNSRecord</code> resource:</p>
+<div class="highlight"><pre><span></span><code><span class="err">$ kubectl describe dnsrecord/foo -n dns-operator-test</span>
+
+<span class="err">[...]</span>
+
+<span class="err">Name:         foo</span>
+<span class="err">Namespace:    dns-operator-test</span>
+<span class="err">API Version:  dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="err">Kind:         DNSRecord</span>
+<span class="err">Spec:</span>
+<span class="err">  Name:  foo.example.com</span>
+<span class="err">  Provider Ref:</span>
+<span class="err">    Name:  cf-provider</span>
+<span class="err">  Rrset:</span>
+<span class="err">    A:</span>
+<span class="err">      1.1.1.1</span>
+<span class="err">Status:</span>
+<span class="err">  Conditions:</span>
+<span class="err">    Last Transition Time:  2021-02-20T18:19:34Z</span>
+<span class="err">    Last Update Time:      2021-02-20T18:19:34Z</span>
+<span class="err">    Message:               DNS record registered</span>
+<span class="err">    Reason:                Ready</span>
+<span class="err">    Status:                True</span>
+<span class="err">    Type:                  Ready</span>
+<span class="err">Events:</span>
+<span class="err">  Type    Reason      Age   From                        Message</span>
+<span class="err">  ----    ------      ----  ----                        -------</span>
+<span class="err">  Normal  Registered  22s   dns.k8s.marcocameriero.net  DNS record correclty registered</span>
+</code></pre></div>
+<p>We can also check that the records are actually visible.</p>
+<div class="highlight"><pre><span></span><code><span class="err">$ dig +short foo.example.com</span>
+<span class="err">1.1.1.1</span>
+</code></pre></div>
+<p>When you update the <code>DNSRecord</code> resource, the actual DNS records registered on your provider will be automatically kept in sync.
+For example, change the spec of the <code>DNSRecord</code> we just created to:</p>
+<div class="highlight"><pre><span></span><code><span class="err">$ kubectl edit dnsprovider/cf-provider -n dns-operator-test</span>
+
+<span class="err">[...]</span>
+<span class="err">spec:</span>
+<span class="err">  rrset:</span>
+<span class="err">    a:</span>
+<span class="err">      - 1.1.1.1</span>
+<span class="err">      - 2.2.2.2</span>
+</code></pre></div>
+<p>And voilà.</p>
+<div class="highlight"><pre><span></span><code><span class="err">$ dig +short foo.example.com</span>
+<span class="err">1.1.1.1</span>
+<span class="err">2.2.2.2</span>
+</code></pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>A single <code>DNSRecord</code> resource describes a whole RRset</strong>, i.e., all the records of the same name and the same type in a zone.</p>
+<p>This means that if you register an <code>A</code> record for <code>foo.example.com</code> with <code>dns-operator</code>, then <code>dns-operator</code> expects to manage
+<em>all</em> the <code>A</code> records for <code>foo.example.com</code>.</p>
+</div>
+<h2 id="cleanup-test-resources">Cleanup test resources<a class="headerlink" href="#cleanup-test-resources" title="Permanent link">&para;</a></h2>
+<p>If you followed along this tutorial, remember to clean up the test resources.</p>
+<div class="highlight"><pre><span></span><code>kubectl delete namespace dns-operator-test
+</code></pre></div>
                 
               
               
