@@ -46,7 +46,7 @@ type DNSRecordReconciler struct {
 	Context *types.ControllerContext
 }
 
-// +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsrecords,verbs=get;list;watch
+// +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsrecords,verbs=get;list;watch;update;patch
 // +kubebuilder:rbac:groups=dns.k8s.marcocameriero.net,resources=dnsrecords/status,verbs=get;update;patch
 // +kubebuilder:rbac:groups="",resources=events,verbs=create
 

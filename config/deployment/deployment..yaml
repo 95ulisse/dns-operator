@@ -26,7 +26,7 @@ spec:
     spec:
       serviceAccountName: dns-operator
       containers:
-      - image: 95ulisse/dns-operator:latest
+      - image: 95ulisse/dns-operator:0.1
         name: dns-operator
         resources:
           limits:
