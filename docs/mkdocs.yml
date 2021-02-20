@@ -1,0 +1,52 @@
+site_name: dns-operator
+site_description: dns-operator Documentation
+site_author: Marco Cameriero
+site_url: https://95ulisse.github.io/dns-operator
+dev_addr: 0.0.0.0:8000
+
+repo_name: 'GitHub'
+repo_url: 'https://github.com/95ulisse/dns-operator'
+edit_uri: ''
+
+docs_dir: 'content'
+
+theme:
+  name: material
+  language: en
+  palette:
+    scheme: slate # Slate is like a dark mode
+    primary: deep purple
+  font:
+    text: Roboto
+  features:
+    - navigation.tabs
+
+markdown_extensions:
+  - admonition
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: true
+
+nav:
+  - 'Home': index.md
+  - 'Getting Started':
+    - 'Quick Start': getting-started/quick-start.md
+    - 'Installation Guide': getting-started/install.md
+  - 'User Guides':
+    - 'Exposing an application': guides/expose-an-application.md
+    - 'Usage with Cloudflare': guides/cloudflare.md
+    - 'Build from source': guides/build.md
+  - 'Reference':
+    - 'DNSRecord Resource': reference/dnsrecord.md
+    - 'DNSProvider Resource': reference/dnsprovider.md
+  - 'Roadmap': roadmap.md
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/95ulisse
+    - icon: fontawesome/brands/docker
+      link: https://hub.docker.com/u/95ulisse
+    - icon: fontawesome/brands/linkedin
+      link: https://www.linkedin.com/in/marco-cameriero/
