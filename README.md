@@ -3,7 +3,7 @@
 `dns-operator` is an operator for [Kubernetes](https://kubernetes.io) which allows you
 to deploy DNS records as resources in you cluster.
 
-`dns-operator` introduces a new [`DNSRecord`](https://95ulisse.github.io/dns-operator/reference/dnsrecord) kind,
+`dns-operator` introduces a new `DNSRecord` kind,
 which represents a single DNS record on the provider of your choice (e.g., Cloudflare or you own personal server)
 that you can deploy with `kubectl`, `helm` or any other tool you use for your deployments.
 

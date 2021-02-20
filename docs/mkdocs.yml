@@ -23,6 +23,8 @@ theme:
 
 markdown_extensions:
   - admonition
+  - pymdownx.highlight
+  - pymdownx.superfences
   - pymdownx.tasklist:
       custom_checkbox: true
   - toc:
