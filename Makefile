@@ -1,5 +1,6 @@
 # Image URL to use all building/pushing image targets
-IMG ?= 95ulisse/dns-operator:latest
+VERSION ?= 0.1
+IMG ?= 95ulisse/dns-operator:$(VERSION)
 CRD_OPTIONS ?= "crd:crdVersions=v1"
 
 # Get the currently used golang install path (in GOPATH/bin, unless GOBIN is set)
@@ -24,21 +25,26 @@ run: generate fmt vet manifests
 	go run ./main.go
 
 # Install CRDs into a cluster
-install: manifests
+install-crd: manifests
 	kubectl apply -f config/crd
 
 # Uninstall CRDs from a cluster
-uninstall: manifests
+uninstall-crd: manifests
 	kubectl delete -f config/crd
-
-# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
-deploy: manifests install
-	kubectl apply -f config/rbac
-	kubectl apply -f config/deployment
 
 # Generate manifests e.g. CRD, RBAC etc.
 manifests: controller-gen
 	$(CONTROLLER_GEN) $(CRD_OPTIONS) rbac:roleName=dns-operator-role webhook paths="./..." output:crd:artifacts:config=config/crd
+	mkdir -p config/release/v$(VERSION)
+	( for i in config/{crd,rbac,deployment}/*.yaml; do cat "$$i"; echo '---'; done ) > config/release/v$(VERSION)/all-in-one.yaml
+
+# Deploy controller in the configured Kubernetes cluster in ~/.kube/config
+deploy: manifests
+	kubectl apply -f config/release/v$(VERSION)/all-in-one.yaml
+
+# Un-deploy controller in the configured Kubernetes cluster in ~/.kube/config
+undeploy: manifests
+	kubectl delete -f config/release/v$(VERSION)/all-in-one.yaml
 
 # Run go fmt against code
 fmt:

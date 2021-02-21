@@ -1,0 +1,477 @@
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: dnsproviders.dns.k8s.marcocameriero.net
+spec:
+  group: dns.k8s.marcocameriero.net
+  names:
+    kind: DNSProvider
+    listKind: DNSProviderList
+    plural: dnsproviders
+    singular: dnsprovider
+  scope: Namespaced
+  versions:
+  - name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DNSProvider is the Schema for the dnsproviders API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DNSProviderSpec defines the desired state of DNSProvider.
+              Only one of the providers can be configured.
+            properties:
+              cloudflare:
+                description: Use Cloudflare to manage records.
+                properties:
+                  apiKeySecretRef:
+                    description: Reference to a secret containing the API Key to use
+                      for authentication. One between `apiTokenSecretRef` and `apiKeySecretRef`
+                      must be present.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  apiTokenSecretRef:
+                    description: Reference to a secret containing the API Token to
+                      use for authentication. One between `apiTokenSecretRef` and
+                      `apiKeySecretRef` must be present.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                  email:
+                    description: Email owner of the Cloudflare account, required only
+                      if using an API Key.
+                    format: email
+                    minLength: 1
+                    type: string
+                  proxiedByDefault:
+                    description: If true, marks all records as proxied by default.
+                      Defaults to true.
+                    type: boolean
+                type: object
+              dummy:
+                description: Dummy provider used for debugging.
+                type: boolean
+              rfc2136:
+                description: Use RFC2136 ("Dynamic Updates in the Domain Name System")
+                  (https://datatracker.ietf.org/doc/rfc2136/) to manage records.
+                properties:
+                  nameserver:
+                    description: The IP address or hostname of an authoritative DNS
+                      server supporting RFC2136 in the form host:port. If the host
+                      is an IPv6 address it must be enclosed in square brackets (e.g
+                      [2001:db8::1]) ; port is optional. This field is required.
+                    type: string
+                  tsigAlgorithm:
+                    description: 'The TSIG Algorithm configured in the DNS supporting
+                      RFC2136. Used only when ``tsigSecretSecretRef`` and ``tsigKeyName``
+                      are defined. Supported values are (case-insensitive): ``HMACMD5``,
+                      ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.'
+                    type: string
+                  tsigKeyName:
+                    description: The TSIG Key name configured in the DNS. If ``tsigSecretSecretRef``
+                      is defined, this field is required.
+                    type: string
+                  tsigSecretRef:
+                    description: The name of the secret containing the TSIG value.
+                      If ``tsigKeyName`` is defined, this field is required.
+                    properties:
+                      key:
+                        description: The key of the entry in the Secret resource's
+                          `data` field to be used.
+                        type: string
+                      name:
+                        description: Name of the resource being referred.
+                        type: string
+                      namespace:
+                        description: Name of the namespace of the resource being referred.
+                        type: string
+                    required:
+                    - name
+                    type: object
+                required:
+                - nameserver
+                type: object
+              zones:
+                description: DNS zones handled by this provider. At least one zone
+                  must be present.
+                items:
+                  description: Name represents a valid DNS resource name.
+                  type: string
+                minItems: 1
+                type: array
+            required:
+            - zones
+            type: object
+          status:
+            description: DNSProviderStatus defines the observed state of DNSProvider
+            properties:
+              conditions:
+                items:
+                  description: Condition represents the state of a resource at a certain
+                    point in time. Examples of conditions are `Ready` or `Succeeded`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      description: 'ConditionStatus represents the possible values
+                        of a condition: True, False or Unknown.'
+                      type: string
+                    type:
+                      description: ConditionType enumerates the possible values of
+                        the field `Type` of a condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+
+---
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  annotations:
+    controller-gen.kubebuilder.io/version: v0.2.5
+  creationTimestamp: null
+  name: dnsrecords.dns.k8s.marcocameriero.net
+spec:
+  group: dns.k8s.marcocameriero.net
+  names:
+    kind: DNSRecord
+    listKind: DNSRecordList
+    plural: dnsrecords
+    singular: dnsrecord
+  scope: Namespaced
+  versions:
+  - additionalPrinterColumns:
+    - jsonPath: .spec.name
+      name: RR Name
+      type: string
+    - jsonPath: .spec.content
+      name: RR Data
+      type: string
+    name: v1alpha1
+    schema:
+      openAPIV3Schema:
+        description: DNSRecord is the Schema for the dnsrecords API
+        properties:
+          apiVersion:
+            description: 'APIVersion defines the versioned schema of this representation
+              of an object. Servers should convert recognized schemas to the latest
+              internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources'
+            type: string
+          kind:
+            description: 'Kind is a string value representing the REST resource this
+              object represents. Servers may infer this from the endpoint the client
+              submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds'
+            type: string
+          metadata:
+            type: object
+          spec:
+            description: DNSRecordSpec defines the desired state of DNSRecord
+            properties:
+              deletionPolicy:
+                description: 'Specifies how to treat deletion of this DNSRecord. Valid
+                  values are: - "Delete" (default): actually delete the corresponding
+                  DNS record managed by this resource; - "Retain": do not delete the
+                  actual DNS record managed by this resource.'
+                enum:
+                - Delete
+                - Retain
+                type: string
+              name:
+                description: Name of the DNS record. This field is required.
+                type: string
+              providerRef:
+                description: Reference to the DNSProvider managing this DNSRecord.
+                properties:
+                  name:
+                    description: Name of the resource being referred.
+                    type: string
+                  namespace:
+                    description: Name of the namespace of the resource being referred.
+                    type: string
+                required:
+                - name
+                type: object
+              rrset:
+                description: RRSet contains the actual contents of the DNS record.
+                  The meaning of the rdata field depends on the type of record. This
+                  field is required.
+                properties:
+                  a:
+                    description: A record.
+                    items:
+                      description: Ipv4String is a string containing an IPv4 address.
+                      format: ipv4
+                      type: string
+                    minItems: 1
+                    type: array
+                  aaaa:
+                    description: AAAA record.
+                    items:
+                      description: Ipv6String is a string containing an IPv6 address.
+                      format: ipv6
+                      type: string
+                    minItems: 1
+                    type: array
+                  cname:
+                    description: CNAME record.
+                    items:
+                      description: Name represents a valid DNS resource name.
+                      type: string
+                    minItems: 1
+                    type: array
+                  mx:
+                    description: MX record.
+                    items:
+                      description: MXRData represents the contents of an MX DNS record.
+                      properties:
+                        host:
+                          description: Name represents a valid DNS resource name.
+                          type: string
+                        preference:
+                          type: integer
+                      required:
+                      - host
+                      - preference
+                      type: object
+                    minItems: 1
+                    type: array
+                  txt:
+                    description: TXT record.
+                    items:
+                      type: string
+                    minItems: 1
+                    type: array
+                type: object
+              ttlSeconds:
+                description: TTL in seconds of the DNS record. Defaults to 1h.
+                format: int32
+                maximum: 604800
+                minimum: 1
+                type: integer
+            required:
+            - name
+            - providerRef
+            - rrset
+            type: object
+          status:
+            description: DNSRecordStatus defines the observed state of DNSRecord
+            properties:
+              conditions:
+                items:
+                  description: Condition represents the state of a resource at a certain
+                    point in time. Examples of conditions are `Ready` or `Succeeded`.
+                  properties:
+                    lastTransitionTime:
+                      format: date-time
+                      type: string
+                    lastUpdateTime:
+                      format: date-time
+                      type: string
+                    message:
+                      type: string
+                    reason:
+                      type: string
+                    status:
+                      description: 'ConditionStatus represents the possible values
+                        of a condition: True, False or Unknown.'
+                      type: string
+                    type:
+                      description: ConditionType enumerates the possible values of
+                        the field `Type` of a condition.
+                      type: string
+                  required:
+                  - status
+                  - type
+                  type: object
+                type: array
+            type: object
+        type: object
+    served: true
+    storage: true
+    subresources:
+      status: {}
+status:
+  acceptedNames:
+    kind: ""
+    plural: ""
+  conditions: []
+  storedVersions: []
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: dns-operator-rolebinding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: dns-operator-role
+subjects:
+- kind: ServiceAccount
+  name: dns-operator
+  namespace: dns-operator
+---
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: dns-operator-role
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - events
+  verbs:
+  - create
+  - patch
+  - update
+- apiGroups:
+  - ""
+  resources:
+  - secrets
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsproviders
+  verbs:
+  - get
+  - list
+  - watch
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsproviders/status
+  verbs:
+  - get
+  - patch
+  - update
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsrecords
+  verbs:
+  - get
+  - list
+  - patch
+  - update
+  - watch
+- apiGroups:
+  - dns.k8s.marcocameriero.net
+  resources:
+  - dnsrecords/status
+  verbs:
+  - get
+  - patch
+  - update
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: dns-operator
+  namespace: dns-operator---
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    control-plane: dns-operator
+  name: dns-operator
+
+---
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dns-operator
+  namespace: dns-operator
+  labels:
+    control-plane: dns-operator
+spec:
+  selector:
+    matchLabels:
+      control-plane: dns-operator
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        control-plane: dns-operator
+    spec:
+      serviceAccountName: dns-operator
+      containers:
+      - image: 95ulisse/dns-operator:0.1
+        name: dns-operator
+        resources:
+          limits:
+            cpu: 100m
+            memory: 30Mi
+          requests:
+            cpu: 100m
+            memory: 20Mi
+---
