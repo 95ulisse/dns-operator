@@ -1,7 +1,7 @@
 # Quick Start
 
 !!! note
-    This section assumes that you have already installed the operator as described in [Install](/getting-started/install).
+    This section assumes that you have already installed the operator as described in [Install](install.md).
 
 ## Configuring your first provider
 

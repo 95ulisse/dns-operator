@@ -7,8 +7,8 @@ to deploy DNS records as resources in you cluster.
 on the provider of your choice (e.g., Cloudflare or you own personal server) that you can deploy
 with `kubectl`, `helm` or any other tool you use for your deployments.
 
-For a quick overview of the core concepts of the operator, go to the [Quick Start](/getting-started/quick-start) page,
-or, if you prefer a complete step-by-step guide, head over to one of the [User Guides](/guides/expose-an-application).
+For a quick overview of the core concepts of the operator, go to the [Quick Start](getting-started/quick-start.md) page,
+or, if you prefer a complete step-by-step guide, head over to one of the [User Guides](guides/expose-an-application.md).
 
 !!! important
     **`dns-operator` is not a substitute for a complete DNS management solution!**
