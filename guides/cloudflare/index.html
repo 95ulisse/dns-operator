@@ -405,9 +405,45 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Usage with Cloudflare
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Usage with Cloudflare
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#using-an-api-token" class="md-nav__link">
+    Using an API Token
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-an-api-key" class="md-nav__link">
+    Using an API Key
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -519,6 +555,28 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#using-an-api-token" class="md-nav__link">
+    Using an API Token
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-an-api-key" class="md-nav__link">
+    Using an API Key
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -531,7 +589,78 @@
                 
                 
                 <h1 id="configuring-the-cloudflare-provider">Configuring the Cloudflare provider<a class="headerlink" href="#configuring-the-cloudflare-provider" title="Permanent link">&para;</a></h1>
-<p>TODO</p>
+<p>To use Cloudflare, you can configure one of two different authentication credentials:</p>
+<ul>
+<li><strong>API Tokens</strong>, which allow finer control and application-specific permessions to certain zones and resources.</li>
+<li><strong>API Keys</strong>, which are globally-scoped keys that carry the same permissions of you whole account.</li>
+</ul>
+<p><strong>API Tokens</strong> are generally more recommendable for their higher livel of security with respect to API Keys.</p>
+<h2 id="using-an-api-token">Using an API Token<a class="headerlink" href="#using-an-api-token" title="Permanent link">&para;</a></h2>
+<p>Create a new API Token from you Cloudflare dashboard at <strong>My Profile &gt; API Tokens &gt; Create Token</strong>.
+The minimum set of permissions required for <code>dns-operator</code> to correctly funcion are:</p>
+<ul>
+<li>
+<p>Permissions:</p>
+<ul>
+<li><code>Zone</code> &gt; <code>Zone</code> &gt; <code>Read</code></li>
+<li><code>Zone</code> &gt; <code>DNS</code> &gt; <code>Edit</code></li>
+</ul>
+</li>
+<li>
+<p>Zone Resources:</p>
+<ul>
+<li><code>Include</code> &gt; <code>Specific zone</code> &gt; <code>&lt;Name of the zone&gt;</code> (or alternatively, grant access to all zones by selecting <code>All zones</code>)</li>
+</ul>
+</li>
+</ul>
+<p>Once you have your new API Token, store it in a Kubernetes secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-token</span>
+<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">token</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">XXXXXXXXXXXXXXXXX</span> <span class="c1"># Base64 encoded</span>
+</code></pre></div>
+<p>And then reference it in your <code>DNSProvider</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSProvider</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">zones</span><span class="p">:</span>
+    <span class="c1"># These zones must be included in the list of authorized zones for the token</span>
+    <span class="p p-Indicator">-</span> <span class="s">&#39;[...]&#39;</span>
+  <span class="nt">cloudflare</span><span class="p">:</span>
+    <span class="nt">apiTokenSecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-token</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">token</span>
+</code></pre></div>
+<h2 id="using-an-api-key">Using an API Key<a class="headerlink" href="#using-an-api-key" title="Permanent link">&para;</a></h2>
+<p>View you account key at <strong>My Profile &gt; API Tokens &gt; Global API Key &gt; View</strong>.
+Copy the key and store in in a Kubernetes secret:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">v1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Secret</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-key</span>
+<span class="nt">type</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Opaque</span>
+<span class="nt">data</span><span class="p">:</span>
+  <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">XXXXXXXXXXXXXXXXX</span> <span class="c1"># Base64 encoded</span>
+</code></pre></div>
+<p>And then reference it in your <code>DNSProvider</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSProvider</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider</span>
+<span class="nt">spec</span><span class="p">:</span>
+  <span class="nt">zones</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="s">&#39;[...]&#39;</span>
+  <span class="nt">cloudflare</span><span class="p">:</span>
+    <span class="nt">email</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">your-cloudflare-email@example.com</span>
+    <span class="nt">apiKeySecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-key</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key</span>
+</code></pre></div>
                 
               
               

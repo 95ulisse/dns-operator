@@ -417,9 +417,38 @@
         
       
       
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          Build from source
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
       <a href="./" class="md-nav__link md-nav__link--active">
         Build from source
       </a>
+      
+        
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#building-the-docs" class="md-nav__link">
+    Building the docs
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
       
     </li>
   
@@ -519,6 +548,21 @@
     
   
   
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#building-the-docs" class="md-nav__link">
+    Building the docs
+  </a>
+  
+</li>
+      
+    </ul>
+  
 </nav>
                   </div>
                 </div>
@@ -531,7 +575,40 @@
                 
                 
                 <h1 id="build-from-source">Build from source<a class="headerlink" href="#build-from-source" title="Permanent link">&para;</a></h1>
-<p>TODO</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>dns-operator</code> is built using <a href="https://kubebuilder.io">Kubebuilder</a>.</p>
+</div>
+<p>Clone the repository and use <code>make</code> to build the source.</p>
+<div class="highlight"><pre><span></span><code>$ git clone https://github.com/95ulisse/dns-operator.git
+$ <span class="nb">cd</span> dns-operator
+$ make
+</code></pre></div>
+<p>You can then run the operator either out-of-cluster or in-cluster:</p>
+<ul>
+<li>
+<p><strong>out-of-cluster</strong>, by directly running the compiled binary (it will connect to the cluster configured for your <code>kubectl</code>).
+  This is the recommended method, as it is way simpler and faster for debugging.</p>
+<div class="highlight"><pre><span></span><code>$ make run <span class="nv">ENABLE_WEBHOOKS</span><span class="o">=</span><span class="nb">false</span>
+</code></pre></div>
+</li>
+<li>
+<p><strong>in-cluster</strong>, by building a Docker image and deploying the operator as a workload on your cluster.</p>
+<div class="highlight"><pre><span></span><code>$ make docker-build <span class="nv">IMG</span><span class="o">=</span>custom/image-name:tag
+$ make docker-push <span class="nv">IMG</span><span class="o">=</span>custom/image-name:tag
+$ make deploy <span class="c1"># This automatically installs CRDs and configures RBAC for dns-operator</span>
+</code></pre></div>
+</li>
+</ul>
+<h2 id="building-the-docs">Building the docs<a class="headerlink" href="#building-the-docs" title="Permanent link">&para;</a></h2>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>This documentation is written using <a href="https://www.mkdocs.org">MkDocs</a> and <a href="https://squidfunk.github.io/mkdocs-material">MkDocs Material</a>.</p>
+</div>
+<p>Go to the <code>docs</code> directory and spin up a local server to test documentation.</p>
+<div class="highlight"><pre><span></span><code>$ <span class="nb">cd</span> docs
+$ make docs-serve <span class="c1"># Docs will be available on http://localhost:8000/</span>
+</code></pre></div>
                 
               
               
