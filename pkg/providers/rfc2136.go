@@ -250,7 +250,7 @@ func aaaa(source *v1alpha1.Ipv6String, target *net.IP) error {
 }
 
 func name(source *dnsname.Name, target *string) error {
-	*target = source.String()
+	*target = source.ToFQDN().String()
 	return nil
 }
 
