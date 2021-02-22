@@ -531,7 +531,62 @@
                 
                 
                 <h1 id="dnsprovider-resource">DNSProvider Resource<a class="headerlink" href="#dnsprovider-resource" title="Permanent link">&para;</a></h1>
-<p>TODO</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSProvider</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-provider</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator</span>
+<span class="nt">spec</span><span class="p">:</span>
+
+  <span class="c1"># DNS zones handled by this provider.</span>
+  <span class="c1"># At least one zone must be present.</span>
+  <span class="nt">zones</span><span class="p">:</span>
+    <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">example.com</span>
+
+  <span class="c1"># Cloudflare provider configuration</span>
+  <span class="nt">cloudflare</span><span class="p">:</span>
+
+    <span class="c1"># If true, marks all records as proxied by default.</span>
+    <span class="c1"># Defaults to true.</span>
+    <span class="nt">proxiedByDefault</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">true</span>
+
+    <span class="c1"># Email of your Cloudflare account. Required only if using an API Key.</span>
+    <span class="nt">email</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-cloudflare-email@example.com</span>
+
+    <span class="c1"># Reference to a secret containing the API Key to use for authentication.</span>
+    <span class="c1"># Either this field or `apiTokenSecretRef` is required.</span>
+    <span class="nt">apiKeySecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-key</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key</span>
+
+    <span class="c1"># Reference to a secret containing the API Token to use for authentication.</span>
+    <span class="c1"># Either this field or `apiKeySecretRef` is required.</span>
+    <span class="nt">apiTokenSecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">cf-provider-api-token</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">token</span>
+
+  <span class="c1"># RFC2136 (aka Dynamic DNS) provider</span>
+  <span class="nt">rfc2136</span><span class="p">:</span>
+
+    <span class="c1"># The IP address or hostname of an authoritative DNS server supporting RFC2136 in the form host:port.</span>
+    <span class="nt">nameserver</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">1.1.1.1</span>
+
+    <span class="c1"># The name of the secret containing the TSIG value.</span>
+    <span class="c1"># If any of the `tsig*` fields is defined, this field is required.</span>
+    <span class="nt">tsigSecretRef</span><span class="p">:</span>
+      <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-provider-tsig-secret</span>
+      <span class="nt">key</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">key</span>
+
+    <span class="c1"># The TSIG Key name configured in the DNS.</span>
+    <span class="c1"># If any of the `tsig*` fields is defined, this field is required.</span>
+    <span class="nt">tsigKeyName</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator</span>
+
+    <span class="c1"># The TSIG Algorithm configured in the DNS supporting RFC2136.</span>
+    <span class="c1"># Used only when ``tsigSecretSecretRef`` and ``tsigKeyName`` are defined.</span>
+    <span class="c1"># Supported values are (case-insensitive):</span>
+    <span class="c1"># &quot;HMACMD5&quot;, &quot;HMACSHA1&quot;, &quot;HMACSHA256&quot; or &quot;HMACSHA512&quot;.</span>
+    <span class="nt">tsigAlgorithm</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">HMACSHA512</span>
+</code></pre></div>
                 
               
               

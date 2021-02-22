@@ -531,7 +531,52 @@
                 
                 
                 <h1 id="dnsrecord-resource">DNSRecord Resource<a class="headerlink" href="#dnsrecord-resource" title="Permanent link">&para;</a></h1>
-<p>TODO</p>
+<div class="highlight"><pre><span></span><code><span class="nt">apiVersion</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns.k8s.marcocameriero.net/v1alpha1</span>
+<span class="nt">kind</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">DNSRecord</span>
+<span class="nt">metadata</span><span class="p">:</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-record</span>
+  <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operator</span>
+<span class="nt">spec</span><span class="p">:</span>
+
+  <span class="c1"># Full name of the DNS record.</span>
+  <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">foo.example.com</span>
+
+  <span class="c1"># Reference to the provider managing this record.</span>
+  <span class="nt">providerRef</span><span class="p">:</span>
+    <span class="nt">name</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">my-provider</span>
+    <span class="nt">namespace</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">dns-operation</span> <span class="c1"># Optional, defaults to the same namespace of the DNSRecord itself</span>
+
+  <span class="c1"># Specifies how to treat deletion of this DNSRecord.</span>
+  <span class="c1"># Valid values are:</span>
+  <span class="c1"># - &quot;Delete&quot; (default): actually delete the corresponding DNS record managed by this resource.</span>
+  <span class="c1"># - &quot;Retain&quot;: keep the published DNS record even after this resource is deleted.</span>
+  <span class="nt">deletionPolicy</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">Delete</span>
+
+  <span class="c1"># TTL in seconds of the DNS record. Defaults to 1h.</span>
+  <span class="nt">ttlSeconds</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">3600</span>
+
+  <span class="c1"># Actual contents of the record.</span>
+  <span class="c1"># **Only one of the nested fields can be present.**</span>
+  <span class="c1"># Each entry in any of the nested arrays represents a *single* DNS record.</span>
+  <span class="nt">rrset</span><span class="p">:</span>
+    <span class="nt">a</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1.1.1.1</span>
+    <span class="nt">aaaa</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">1.1.1.1</span>
+    <span class="nt">mx</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="nt">preference</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">10</span>
+        <span class="nt">host</span><span class="p">:</span> <span class="l l-Scalar l-Scalar-Plain">mail.example.com</span>
+    <span class="nt">cname</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">mail.example.com</span>
+    <span class="nt">txt</span><span class="p">:</span>
+      <span class="p p-Indicator">-</span> <span class="l l-Scalar l-Scalar-Plain">Contents of the TXT record</span>
+</code></pre></div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p><strong>A single <code>DNSRecord</code> resource describes a whole RRset</strong>, i.e., all the records of the same name and the same type in a zone.</p>
+<p>This means that if you register an <code>A</code> record for <code>foo.example.com</code> with <code>dns-operator</code>, then <code>dns-operator</code> expects to manage
+<em>all</em> the <code>A</code> records for <code>foo.example.com</code>.</p>
+</div>
                 
               
               

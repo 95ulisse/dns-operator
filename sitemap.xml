@@ -1,39 +1,39 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url>
      <loc>https://95ulisse.github.io/dns-operator/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/getting-started/quick-start/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/getting-started/install/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/guides/expose-an-application/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/guides/cloudflare/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/guides/build/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/reference/dnsrecord/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/reference/dnsprovider/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url><url>
      <loc>https://95ulisse.github.io/dns-operator/roadmap/</loc>
-     <lastmod>2021-02-21</lastmod>
+     <lastmod>2021-02-22</lastmod>
      <changefreq>daily</changefreq>
     </url>
 </urlset>
