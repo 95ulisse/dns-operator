@@ -12,7 +12,7 @@ To install `dns-operator` in your cluster, use the all-in-one manifest.
 This will install the new CRDs and correctly setup RBAC roles.
 
 ```raw
-$ kubectl apply -f https://raw.githubusercontent.com/95ulisse/dns-operator/master/config/release/latest/all-in-one.yaml
+$ kubectl apply -f https://raw.githubusercontent.com/95ulisse/dns-operator/master/config/release/v0.1/all-in-one.yaml
 ```
 
 ## Verifying the installation
