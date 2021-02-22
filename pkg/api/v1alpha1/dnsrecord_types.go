@@ -44,7 +44,7 @@ type DNSRecordSpec struct {
 	// Specifies how to treat deletion of this DNSRecord.
 	// Valid values are:
 	// - "Delete" (default): actually delete the corresponding DNS record managed by this resource;
-	// - "Retain": do not delete the actual DNS record managed by this resource.
+	// - "Retain": keep the published DNS record even after this resource is deleted.
 	// +optional
 	DeletionPolicy *DeletionPolicy `json:"deletionPolicy,omitempty"`
 }

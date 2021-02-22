@@ -107,12 +107,12 @@ spec:
                       ``HMACSHA1``, ``HMACSHA256`` or ``HMACSHA512``.'
                     type: string
                   tsigKeyName:
-                    description: The TSIG Key name configured in the DNS. If ``tsigSecretSecretRef``
-                      is defined, this field is required.
+                    description: The TSIG Key name configured in the DNS. If any of
+                      the ``tsig*`` fields is defined, this field is required.
                     type: string
                   tsigSecretRef:
                     description: The name of the secret containing the TSIG value.
-                      If ``tsigKeyName`` is defined, this field is required.
+                      If any of the ``tsig*`` fields is defined, this field is required.
                     properties:
                       key:
                         description: The key of the entry in the Secret resource's

@@ -54,12 +54,12 @@ type DNSProviderRFC2136 struct {
 	Nameserver string `json:"nameserver"`
 
 	// The name of the secret containing the TSIG value.
-	// If ``tsigKeyName`` is defined, this field is required.
+	// If any of the ``tsig*`` fields is defined, this field is required.
 	// +optional
 	TSIGSecretRef *SecretReference `json:"tsigSecretRef,omitempty"`
 
 	// The TSIG Key name configured in the DNS.
-	// If ``tsigSecretSecretRef`` is defined, this field is required.
+	// If any of the ``tsig*`` fields is defined, this field is required.
 	// +optional
 	TSIGKeyName *string `json:"tsigKeyName,omitempty"`
 
