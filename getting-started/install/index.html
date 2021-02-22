@@ -610,7 +610,7 @@ to provide the new <code>DNSProvider</code> and <code>DNSResource</code> that yo
 <h2 id="installing-the-manifests">Installing the manifests<a class="headerlink" href="#installing-the-manifests" title="Permanent link">&para;</a></h2>
 <p>To install <code>dns-operator</code> in your cluster, use the all-in-one manifest.
 This will install the new CRDs and correctly setup RBAC roles.</p>
-<div class="highlight"><pre><span></span><code><span class="err">$ kubectl apply -f https://raw.githubusercontent.com/95ulisse/dns-operator/master/config/release/latest/all-in-one.yaml</span>
+<div class="highlight"><pre><span></span><code><span class="err">$ kubectl apply -f https://raw.githubusercontent.com/95ulisse/dns-operator/master/config/release/v0.1/all-in-one.yaml</span>
 </code></pre></div>
 <h2 id="verifying-the-installation">Verifying the installation<a class="headerlink" href="#verifying-the-installation" title="Permanent link">&para;</a></h2>
 <p>If the deployment went smoothly, you should see a single <code>dns-operator</code> pod marked as <code>Ready</code>.</p>
